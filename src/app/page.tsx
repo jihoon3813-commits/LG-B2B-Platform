@@ -24,7 +24,7 @@ export default function LoginPage() {
       // @ts-ignore (타입 추론이 늦을 수 있음)
       const result = await loginMutation({ email, password });
 
-      if (result && result.success) {
+      if (result && result.success && result.user) {
         // 로그인 성공: 로컬 스토리지에 사용자 정보 저장 (간이 세션)
         localStorage.setItem("user_email", result.user.email);
         localStorage.setItem("user_role", result.user.role);
