@@ -4,7 +4,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../../../convex/_generated/api";
 import { useState, useEffect, useCallback } from "react";
 import {
-    Type, Image as ImageIcon, Video, MoveVertical, Save, ExternalLink, ChevronLeft, MousePointer2, Pencil, Bold, Link as LinkIcon, AlignLeft, AlignCenter, AlignRight, Layout, ImagePlus
+    Type, Image as ImageIcon, Video, MoveVertical, Save, ExternalLink, ChevronLeft, MousePointer2, Pencil, Bold, Link as LinkIcon, AlignLeft, AlignCenter, AlignRight, Layout, ImagePlus, Table as TableIcon, CreditCard, Check, Circle, Square
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { Id } from "../../../../../../convex/_generated/dataModel";
@@ -12,13 +12,18 @@ import { Id } from "../../../../../../convex/_generated/dataModel";
 // Types
 interface Block {
     id: string;
-    type: 'text' | 'image' | 'video' | 'button' | 'spacer';
+    type: 'text' | 'image' | 'video' | 'button' | 'spacer' | 'table' | 'card';
     content: {
         text?: string;
         url?: string;
         alt?: string;
         link?: string;
         autoPlay?: boolean;
+        rows?: string[][]; // Table rows data
+        cellStyles?: Record<string, any>; // Style for specific cells (key: 'r-c')
+        title?: string;    // Card title
+        badgeText?: string; // Card background large number
+        bulletType?: 'none' | 'dot' | 'check' | 'square';
     };
     style: {
         fontSize?: string;
@@ -31,6 +36,14 @@ interface Block {
         padding?: string;
         height?: string;
         width?: string;
+        lineHeight?: string;
+        letterSpacing?: string;
+        borderColor?: string;
+        borderWidth?: string;
+        boxShadow?: string;
+        accentSide?: 'top' | 'bottom' | 'left' | 'right' | 'none';
+        accentColor?: string;
+        badgeColor?: string;
     };
 }
 
@@ -46,13 +59,24 @@ interface Section {
     };
     children: Block[];
 }
-
 const WIDGETS = [
     { type: 'text', label: '텍스트', icon: Type },
     { type: 'image', label: '이미지', icon: ImageIcon },
     { type: 'video', label: '동영상', icon: Video },
     { type: 'button', label: '버튼', icon: MousePointer2 },
+    { type: 'table', label: '표', icon: TableIcon },
+    { type: 'card', label: '카드형 박스', icon: CreditCard },
     { type: 'spacer', label: '여백', icon: MoveVertical },
+];
+
+const FONTS = [
+    { label: '기본 (Pretendard)', value: 'Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif' },
+    { label: '본고딕 (Noto Sans KR)', value: '"Noto Sans KR", sans-serif' },
+    { label: '나눔고딕 (Nanum Gothic)', value: '"Nanum Gothic", sans-serif' },
+    { label: '나눔명조 (Nanum Myeongjo)', value: '"Nanum Myeongjo", serif' },
+    { label: '지마켓 산스 (Gmarket Sans)', value: '"GmarketSans", sans-serif' },
+    { label: '에스코어 드림 (S-Core Dream)', value: '"S-CoreDream", sans-serif' },
+    { label: '검은고딕 (Black Han Sans)', value: '"Black Han Sans", sans-serif' },
 ];
 
 const generateId = (prefix: string) => prefix + Date.now().toString(36) + Math.random().toString(36).substring(2, 7);
@@ -88,7 +112,8 @@ export default function CampaignEditorPage() {
 
     const [sections, setSections] = useState<Section[]>([]);
     const [selectedId, setSelectedId] = useState<string | null>(null);
-    const [selectedType, setSelectedType] = useState<'block' | 'section' | null>(null);
+    const [selectedType, setSelectedType] = useState<'section' | 'block' | null>(null);
+    const [selectedCell, setSelectedCell] = useState<{ r: number, c: number } | null>(null);
     const [title, setTitle] = useState("");
     const [isSaving, setIsSaving] = useState(false);
 
@@ -132,14 +157,18 @@ export default function CampaignEditorPage() {
             case 'button': return { text: '클릭하세요', url: '#' };
             case 'image': return { url: '', alt: '이미지 설명', link: '' };
             case 'video': return { url: '', autoPlay: false };
+            case 'table': return { rows: [['구분', '내용'], ['항목1', '설명1'], ['항목2', '설명2']], cellStyles: {} };
+            case 'card': return { title: '제목을 입력하세요', text: '여기에 상세 내용을 입력하세요.', badgeText: '01' };
             default: return {};
         }
     };
     const getDefaultStyle = (type: string): Block['style'] => {
         switch (type) {
-            case 'text': return { fontSize: '16px', color: '#000000', backgroundColor: 'transparent', textAlign: 'left', fontWeight: 'normal', fontFamily: 'sans-serif', padding: '10px' };
-            case 'button': return { backgroundColor: '#000000', color: '#ffffff', borderRadius: '4px', padding: '12px 20px', width: '100%', textAlign: 'center', fontSize: '16px' };
+            case 'text': return { fontSize: '16px', color: '#000000', backgroundColor: 'transparent', textAlign: 'left', fontWeight: 'normal', fontFamily: FONTS[0].value, padding: '10px' };
+            case 'button': return { backgroundColor: '#000000', color: '#ffffff', borderRadius: '4px', padding: '12px 20px', width: '100%', textAlign: 'center', fontSize: '16px', fontWeight: 'bold', fontFamily: FONTS[0].value };
             case 'image': return { width: '100%', borderRadius: '0px', textAlign: 'center' };
+            case 'table': return { fontSize: '14px', padding: '10px', backgroundColor: '#ffffff', borderColor: '#eeeeee', borderWidth: '1px' };
+            case 'card': return { backgroundColor: '#ffffff', borderRadius: '12px', padding: '30px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', borderColor: '#f1f1f1', borderWidth: '1px', accentSide: 'top', accentColor: '#2563eb', badgeColor: '#e0e7ff' };
             case 'spacer': return { height: '20px' };
             default: return {};
         }
@@ -327,7 +356,12 @@ export default function CampaignEditorPage() {
                                     {section.children.map((block, bIndex) => (
                                         <div
                                             key={block.id}
-                                            onClick={(e) => { e.stopPropagation(); setSelectedId(block.id); setSelectedType('block'); }}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (selectedId !== block.id) setSelectedCell(null);
+                                                setSelectedId(block.id);
+                                                setSelectedType('block');
+                                            }}
                                             className={`relative group/block cursor-pointer
                                             ${(selectedType === 'block' && selectedId === block.id) ? "ring-2 ring-purple-500 z-20" : "hover:ring-1 hover:ring-purple-200"}
                                         `}
@@ -341,19 +375,145 @@ export default function CampaignEditorPage() {
                                                 </div>
                                             )}
 
-                                            <div className="relative pointer-events-none">
+                                            <div className={`relative ${selectedId === block.id ? "pointer-events-auto" : "pointer-events-none"}`}>
                                                 {block.type === 'text' && <div style={block.style} className="whitespace-pre-wrap">{block.content.text}</div>}
                                                 {block.type === 'image' && (
-                                                    <div style={{ textAlign: block.style.textAlign || 'center' }}>
+                                                    <div style={{ display: 'flex', justifyContent: block.style.textAlign === 'left' ? 'flex-start' : block.style.textAlign === 'right' ? 'flex-end' : 'center', width: '100%' }}>
                                                         {block.content.url ? (
                                                             block.content.url.startsWith('http')
-                                                                ? <img src={block.content.url} alt="" style={block.style} />
-                                                                : <StorageImage storageId={block.content.url} style={block.style} />
+                                                                ? <img src={block.content.url} alt="" style={{ ...block.style, maxWidth: '100%', objectFit: (block.style.width || block.style.height) ? 'cover' : 'contain' }} />
+                                                                : <StorageImage storageId={block.content.url} style={{ ...block.style, maxWidth: '100%', objectFit: (block.style.width || block.style.height) ? 'cover' : 'contain' }} />
                                                         ) : <div className="bg-gray-100 h-20 flex items-center justify-center text-xs text-gray-400">이미지 없음</div>}
                                                     </div>
                                                 )}
-                                                {block.type === 'video' && <div className="bg-black aspect-video flex items-center justify-center text-[10px] text-gray-500">Video Preview</div>}
+                                                {block.type === 'video' && (
+                                                    <div className="aspect-video bg-black flex items-center justify-center overflow-hidden">
+                                                        {block.content.url ? (
+                                                            <iframe
+                                                                className="w-full h-full pointer-events-none"
+                                                                src={(() => {
+                                                                    let base = block.content.url.includes('youtube.com') || block.content.url.includes('youtu.be')
+                                                                        ? block.content.url.replace('watch?v=', 'embed/').split('&')[0].replace('youtu.be/', 'youtube.com/embed/')
+                                                                        : block.content.url;
+                                                                    if (block.content.autoPlay) {
+                                                                        base += (base.includes('?') ? '&' : '?') + 'autoplay=1&mute=1';
+                                                                    }
+                                                                    return base;
+                                                                })()}
+                                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                            ></iframe>
+                                                        ) : (
+                                                            <div className="text-[10px] text-gray-500 flex flex-col items-center gap-1">
+                                                                <Video className="w-5 h-5" />
+                                                                <span>비디오 주소를 입력하세요</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
                                                 {block.type === 'button' && <div style={{ textAlign: 'center', padding: '10px' }}><span style={{ display: 'inline-block', ...block.style }}>{block.content.text}</span></div>}
+                                                {block.type === 'table' && (
+                                                    <div style={{ padding: block.style.padding }}>
+                                                        <table className="w-full border-collapse" style={{ fontSize: block.style.fontSize, fontFamily: block.style.fontFamily }}>
+                                                            <tbody>
+                                                                {block.content.rows?.map((row, ri) => (
+                                                                    <tr key={ri}>
+                                                                        {row.map((cell, ci) => {
+                                                                            const cellStyle = block.content.cellStyles?.[`${ri}-${ci}`] || {};
+                                                                            const isSelected = selectedId === block.id && selectedCell?.r === ri && selectedCell?.c === ci;
+                                                                            return (
+                                                                                <td
+                                                                                    key={ci}
+                                                                                    className={`border p-2 cursor-pointer transition-all ${isSelected ? 'ring-2 ring-blue-500 ring-inset' : ''}`}
+                                                                                    style={{
+                                                                                        borderColor: block.style.borderColor,
+                                                                                        backgroundColor: cellStyle.backgroundColor,
+                                                                                        color: cellStyle.color,
+                                                                                        fontSize: cellStyle.fontSize,
+                                                                                        textAlign: cellStyle.textAlign,
+                                                                                        fontFamily: cellStyle.fontFamily,
+                                                                                        fontWeight: cellStyle.fontWeight,
+                                                                                        lineHeight: cellStyle.lineHeight,
+                                                                                        letterSpacing: cellStyle.letterSpacing
+                                                                                    }}
+                                                                                    onClick={(e) => {
+                                                                                        if (selectedType === 'block' && selectedId === block.id) {
+                                                                                            e.stopPropagation();
+                                                                                            setSelectedCell({ r: ri, c: ci });
+                                                                                        }
+                                                                                    }}
+                                                                                >
+                                                                                    {cell}
+                                                                                </td>
+                                                                            );
+                                                                        })}
+                                                                    </tr>
+                                                                ))}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                )}
+                                                {block.type === 'card' && (
+                                                    <div className="p-4">
+                                                        <div
+                                                            style={{
+                                                                backgroundColor: block.style.backgroundColor,
+                                                                borderRadius: block.style.borderRadius,
+                                                                padding: block.style.padding,
+                                                                boxShadow: block.style.boxShadow,
+                                                                border: `${block.style.borderWidth || '1px'} solid ${block.style.borderColor || 'transparent'}`,
+                                                                borderTop: block.style.accentSide === 'top' ? `4px solid ${block.style.accentColor}` : undefined,
+                                                                borderBottom: block.style.accentSide === 'bottom' ? `4px solid ${block.style.accentColor}` : undefined,
+                                                                borderLeft: block.style.accentSide === 'left' ? `4px solid ${block.style.accentColor}` : undefined,
+                                                                borderRight: block.style.accentSide === 'right' ? `4px solid ${block.style.accentColor}` : undefined,
+                                                                fontFamily: block.style.fontFamily,
+                                                                position: 'relative',
+                                                                overflow: 'hidden',
+                                                                height: block.style.height || 'auto'
+                                                            }}
+                                                            className="transition-all"
+                                                        >
+                                                            {block.content.badgeText && (
+                                                                <div
+                                                                    style={{
+                                                                        position: 'absolute',
+                                                                        top: '-10px',
+                                                                        left: '15px',
+                                                                        fontSize: '60px',
+                                                                        fontWeight: '900',
+                                                                        color: block.style.badgeColor || '#e0e7ff',
+                                                                        opacity: 0.5,
+                                                                        lineHeight: 1,
+                                                                        pointerEvents: 'none',
+                                                                        zIndex: 0
+                                                                    }}
+                                                                >
+                                                                    {block.content.badgeText}
+                                                                </div>
+                                                            )}
+                                                            <div className="relative z-10 h-full flex flex-col" style={{ height: block.style.height ? '100%' : 'auto' }}>
+                                                                <h4 className="font-black mb-2" style={{ color: block.style.color, fontSize: `calc(${block.style.fontSize || '16px'} + 2px)`, textAlign: block.style.textAlign }}>{block.content.title}</h4>
+                                                                <div className="flex gap-2" style={{
+                                                                    color: block.style.color,
+                                                                    fontSize: block.style.fontSize,
+                                                                    textAlign: block.style.textAlign,
+                                                                    lineHeight: block.style.lineHeight || '1.6',
+                                                                    letterSpacing: block.style.letterSpacing,
+                                                                    fontWeight: block.style.fontWeight,
+                                                                    whiteSpace: 'pre-wrap'
+                                                                }}>
+                                                                    {block.content.bulletType && block.content.bulletType !== 'none' && (
+                                                                        <div className="mt-1 flex-shrink-0">
+                                                                            {block.content.bulletType === 'dot' && <Circle className="w-2 h-2 fill-current" />}
+                                                                            {block.content.bulletType === 'check' && <Check className="w-3 h-3" strokeWidth={3} />}
+                                                                            {block.content.bulletType === 'square' && <Square className="w-2 h-2 fill-current" />}
+                                                                        </div>
+                                                                    )}
+                                                                    <p className="opacity-80 flex-1">{block.content.text}</p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
                                                 {block.type === 'spacer' && <div style={{ height: block.style.height }}></div>}
                                             </div>
                                         </div>
@@ -441,10 +601,34 @@ export default function CampaignEditorPage() {
                                         </div>
                                     </div>
                                     <div>
+                                        <label className="text-xs font-bold text-gray-400 mb-1 block">글꼴 (Font)</label>
+                                        <select
+                                            className="w-full p-2 border rounded-lg text-xs bg-gray-50 outline-none focus:ring-2 focus:ring-purple-100 transition-all font-medium"
+                                            value={selectedBlock.style.fontFamily || ""}
+                                            onChange={(e) => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, fontFamily: e.target.value } })}
+                                        >
+                                            {FONTS.map(font => (
+                                                <option key={font.value} value={font.value} style={{ fontFamily: font.value }}>
+                                                    {font.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
                                         <label className="text-xs font-bold text-gray-400 mb-1 block">배경색</label>
                                         <div className="flex gap-2 items-center bg-gray-50 p-2 rounded-lg border">
                                             <input type="color" className="w-6 h-6 border-none cursor-pointer" value={selectedBlock.style.backgroundColor === 'transparent' ? '#ffffff' : selectedBlock.style.backgroundColor} onChange={(e) => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, backgroundColor: e.target.value } })} />
                                             <button className="text-[10px] text-gray-400 hover:text-black" onClick={() => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, backgroundColor: 'transparent' } })}>투명하게</button>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <div className="flex-1">
+                                            <label className="text-xs font-bold text-gray-400 mb-1 block">행간 (Line Height)</label>
+                                            <input type="range" min="0.8" max="3" step="0.1" className="w-full" value={parseFloat(selectedBlock.style.lineHeight || '1.5')} onChange={(e) => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, lineHeight: e.target.value } })} />
+                                        </div>
+                                        <div className="flex-1">
+                                            <label className="text-xs font-bold text-gray-400 mb-1 block">자간 (Spacing)</label>
+                                            <input type="range" min="-5" max="20" step="1" className="w-full" value={parseInt(selectedBlock.style.letterSpacing || '0')} onChange={(e) => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, letterSpacing: e.target.value + 'px' } })} />
                                         </div>
                                     </div>
                                     <div>
@@ -482,9 +666,364 @@ export default function CampaignEditorPage() {
                                         </label>
                                     </div>
                                     <div className="flex gap-2">
-                                        <button className={`flex-1 p-2 border rounded ${selectedBlock.style.textAlign === 'left' ? "bg-purple-100" : "bg-gray-50"}`} onClick={() => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, textAlign: 'left' } })}><AlignLeft className="w-4 h-4 mx-auto" /></button>
-                                        <button className={`flex-1 p-2 border rounded ${selectedBlock.style.textAlign === 'center' ? "bg-purple-100" : "bg-gray-50"}`} onClick={() => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, textAlign: 'center' } })}><AlignCenter className="w-4 h-4 mx-auto" /></button>
-                                        <button className={`flex-1 p-2 border rounded ${selectedBlock.style.textAlign === 'right' ? "bg-purple-100" : "bg-gray-50"}`} onClick={() => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, textAlign: 'right' } })}><AlignRight className="w-4 h-4 mx-auto" /></button>
+                                        <button className={`flex-1 p-2 border rounded ${selectedBlock.style.textAlign === 'left' ? "bg-purple-100 border-purple-200" : "bg-gray-50 text-gray-400"}`} onClick={() => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, textAlign: 'left' } })}><AlignLeft className="w-4 h-4 mx-auto" /></button>
+                                        <button className={`flex-1 p-2 border rounded ${selectedBlock.style.textAlign === 'center' ? "bg-purple-100 border-purple-200" : "bg-gray-50 text-gray-400"}`} onClick={() => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, textAlign: 'center' } })}><AlignCenter className="w-4 h-4 mx-auto" /></button>
+                                        <button className={`flex-1 p-2 border rounded ${selectedBlock.style.textAlign === 'right' ? "bg-purple-100 border-purple-200" : "bg-gray-50 text-gray-400"}`} onClick={() => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, textAlign: 'right' } })}><AlignRight className="w-4 h-4 mx-auto" /></button>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <label className="text-xs font-bold text-gray-400 mb-1 block">가로 크기 (Width)</label>
+                                            <input type="text" className="w-full p-2 border rounded-lg text-xs bg-gray-50" placeholder="100% 또는 300px" value={selectedBlock.style.width || ''} onChange={(e) => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, width: e.target.value } })} />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-bold text-gray-400 mb-1 block">세로 크기 (Height)</label>
+                                            <input type="text" className="w-full p-2 border rounded-lg text-xs bg-gray-50" placeholder="auto 또는 200px" value={selectedBlock.style.height || ''} onChange={(e) => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, height: e.target.value } })} />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {selectedBlock.type === 'button' && (
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-400 mb-1 block">버튼 텍스트</label>
+                                        <input type="text" className="w-full p-2 border rounded-lg text-sm bg-gray-50 focus:bg-white" value={selectedBlock.content.text || ''} onChange={(e) => updateBlock(selectedBlock!.id, { content: { ...selectedBlock!.content, text: e.target.value } })} />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-400 mb-1 block">글꼴 (Font)</label>
+                                        <select
+                                            className="w-full p-2 border rounded-lg text-xs bg-gray-50 outline-none focus:ring-2 focus:ring-purple-100"
+                                            value={selectedBlock.style.fontFamily || ""}
+                                            onChange={(e) => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, fontFamily: e.target.value } })}
+                                        >
+                                            {FONTS.map(font => (
+                                                <option key={font.value} value={font.value} style={{ fontFamily: font.value }}>
+                                                    {font.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <label className="text-xs font-bold text-gray-400 mb-1 block">배경색</label>
+                                            <div className="flex gap-2 p-2 rounded-lg border bg-gray-50 items-center">
+                                                <input type="color" className="w-6 h-6 border-none cursor-pointer" value={selectedBlock.style.backgroundColor || "#000000"} onChange={(e) => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, backgroundColor: e.target.value } })} />
+                                                <span className="text-[10px] font-mono">BG</span>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-bold text-gray-400 mb-1 block">글자색</label>
+                                            <div className="flex gap-2 p-2 rounded-lg border bg-gray-50 items-center">
+                                                <input type="color" className="w-6 h-6 border-none cursor-pointer" value={selectedBlock.style.color || "#ffffff"} onChange={(e) => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, color: e.target.value } })} />
+                                                <span className="text-[10px] font-mono">TEXT</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-400 mb-1 block">링크 (Link)</label>
+                                        <input type="text" className="w-full p-2 border rounded-lg text-sm bg-gray-50 focus:bg-white" value={selectedBlock.content.url || ''} onChange={(e) => updateBlock(selectedBlock!.id, { content: { ...selectedBlock!.content, url: e.target.value } })} />
+                                    </div>
+                                </div>
+                            )}
+
+                            {selectedBlock.type === 'table' && (
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-400 mb-1 block">전체 데이터 편집</label>
+                                        <textarea
+                                            className="w-full p-2 border rounded-lg text-xs bg-gray-50 focus:bg-white h-24 font-mono"
+                                            value={selectedBlock.content.rows?.map(r => r.join(';')).join('\n')}
+                                            onChange={(e) => {
+                                                const rows = e.target.value.split('\n').map(row => row.split(';'));
+                                                updateBlock(selectedBlock!.id, { content: { ...selectedBlock!.content, rows } });
+                                            }}
+                                        />
+                                    </div>
+
+                                    {selectedCell && (
+                                        <div className="p-3 bg-blue-50 rounded-xl border border-blue-100 space-y-3">
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-[10px] font-bold text-blue-600 uppercase">셀 스타일 ({selectedCell.r + 1}행, {selectedCell.c + 1}열)</span>
+                                                <button className="text-[10px] text-gray-400 hover:text-black" onClick={() => setSelectedCell(null)}>닫기</button>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div>
+                                                    <label className="text-[10px] font-bold text-gray-400 block mb-1">배경색</label>
+                                                    <input type="color" className="w-full h-7 border rounded cursor-pointer"
+                                                        value={selectedBlock.content.cellStyles?.[`${selectedCell.r}-${selectedCell.c}`]?.backgroundColor || "#ffffff"}
+                                                        onChange={(e) => {
+                                                            const key = `${selectedCell.r}-${selectedCell.c}`;
+                                                            const cellStyles = { ...(selectedBlock.content.cellStyles || {}), [key]: { ...(selectedBlock.content.cellStyles?.[key] || {}), backgroundColor: e.target.value } };
+                                                            updateBlock(selectedBlock!.id, { content: { ...selectedBlock!.content, cellStyles } });
+                                                        }}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="text-[10px] font-bold text-gray-400 block mb-1">글자색</label>
+                                                    <input type="color" className="w-full h-7 border rounded cursor-pointer"
+                                                        value={selectedBlock.content.cellStyles?.[`${selectedCell.r}-${selectedCell.c}`]?.color || "#000000"}
+                                                        onChange={(e) => {
+                                                            const key = `${selectedCell.r}-${selectedCell.c}`;
+                                                            const cellStyles = { ...(selectedBlock.content.cellStyles || {}), [key]: { ...(selectedBlock.content.cellStyles?.[key] || {}), color: e.target.value } };
+                                                            updateBlock(selectedBlock!.id, { content: { ...selectedBlock!.content, cellStyles } });
+                                                        }}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <div className="flex-1">
+                                                    <label className="text-[10px] font-bold text-gray-400 block mb-1">크기</label>
+                                                    <div className="flex items-center gap-1 border rounded p-1 bg-white">
+                                                        <button className="w-5 h-5 hover:bg-gray-100 rounded" onClick={() => {
+                                                            const key = `${selectedCell.r}-${selectedCell.c}`;
+                                                            const currentSize = selectedBlock.content.cellStyles?.[key]?.fontSize || "14px";
+                                                            const newSize = changeFontSize(currentSize, -1);
+                                                            const cellStyles = { ...(selectedBlock.content.cellStyles || {}), [key]: { ...(selectedBlock.content.cellStyles?.[key] || {}), fontSize: newSize } };
+                                                            updateBlock(selectedBlock!.id, { content: { ...selectedBlock!.content, cellStyles } });
+                                                        }}>-</button>
+                                                        <span className="flex-1 text-center text-[10px] font-mono">{selectedBlock.content.cellStyles?.[`${selectedCell.r}-${selectedCell.c}`]?.fontSize || "14px"}</span>
+                                                        <button className="w-5 h-5 hover:bg-gray-100 rounded" onClick={() => {
+                                                            const key = `${selectedCell.r}-${selectedCell.c}`;
+                                                            const currentSize = selectedBlock.content.cellStyles?.[key]?.fontSize || "14px";
+                                                            const newSize = changeFontSize(currentSize, 1);
+                                                            const cellStyles = { ...(selectedBlock.content.cellStyles || {}), [key]: { ...(selectedBlock.content.cellStyles?.[key] || {}), fontSize: newSize } };
+                                                            updateBlock(selectedBlock!.id, { content: { ...selectedBlock!.content, cellStyles } });
+                                                        }}>+</button>
+                                                    </div>
+                                                </div>
+                                                <div className="flex-1">
+                                                    <label className="text-[10px] font-bold text-gray-400 block mb-1">정렬</label>
+                                                    <div className="flex border rounded overflow-hidden">
+                                                        {['left', 'center', 'right'].map(a => (
+                                                            <button key={a} className={`flex-1 p-1 text-[8px] uppercase font-bold ${selectedBlock.content.cellStyles?.[`${selectedCell.r}-${selectedCell.c}`]?.textAlign === a ? 'bg-blue-500 text-white' : 'bg-white hover:bg-gray-50'}`}
+                                                                onClick={() => {
+                                                                    const key = `${selectedCell.r}-${selectedCell.c}`;
+                                                                    const cellStyles = { ...(selectedBlock.content.cellStyles || {}), [key]: { ...(selectedBlock.content.cellStyles?.[key] || {}), textAlign: a } };
+                                                                    updateBlock(selectedBlock!.id, { content: { ...selectedBlock!.content, cellStyles } });
+                                                                }}
+                                                            >{a.slice(0, 1)}</button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex gap-2">
+                                                <button className={`flex-1 flex justify-center items-center gap-2 p-1.5 rounded border text-[10px] font-bold ${(selectedBlock.content.cellStyles?.[`${selectedCell.r}-${selectedCell.c}`]?.fontWeight === 'bold') ? "bg-blue-100 text-blue-700 border-blue-200" : "bg-white"}`} onClick={() => {
+                                                    const key = `${selectedCell.r}-${selectedCell.c}`;
+                                                    const isBold = selectedBlock.content.cellStyles?.[key]?.fontWeight === 'bold';
+                                                    const cellStyles = { ...(selectedBlock.content.cellStyles || {}), [key]: { ...(selectedBlock.content.cellStyles?.[key] || {}), fontWeight: isBold ? 'normal' : 'bold' } };
+                                                    updateBlock(selectedBlock!.id, { content: { ...selectedBlock!.content, cellStyles } });
+                                                }}><Bold className="w-3 h-3" /> 굵게</button>
+                                                <select
+                                                    className="flex-1 p-1.5 border rounded text-[10px] bg-white outline-none"
+                                                    value={selectedBlock.content.cellStyles?.[`${selectedCell.r}-${selectedCell.c}`]?.fontFamily || ""}
+                                                    onChange={(e) => {
+                                                        const key = `${selectedCell.r}-${selectedCell.c}`;
+                                                        const cellStyles = { ...(selectedBlock.content.cellStyles || {}), [key]: { ...(selectedBlock.content.cellStyles?.[key] || {}), fontFamily: e.target.value } };
+                                                        updateBlock(selectedBlock!.id, { content: { ...selectedBlock!.content, cellStyles } });
+                                                    }}
+                                                >
+                                                    <option value="">기본 글꼴</option>
+                                                    {FONTS.map(font => (
+                                                        <option key={font.value} value={font.value}>{font.label}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <div className="flex-1">
+                                                    <label className="text-[10px] text-gray-400 block">행간</label>
+                                                    <input type="range" min="0.8" max="3" step="0.1" className="w-full h-4"
+                                                        value={parseFloat(selectedBlock.content.cellStyles?.[`${selectedCell.r}-${selectedCell.c}`]?.lineHeight || '1.5')}
+                                                        onChange={(e) => {
+                                                            const key = `${selectedCell.r}-${selectedCell.c}`;
+                                                            const cellStyles = { ...(selectedBlock.content.cellStyles || {}), [key]: { ...(selectedBlock.content.cellStyles?.[key] || {}), lineHeight: e.target.value } };
+                                                            updateBlock(selectedBlock!.id, { content: { ...selectedBlock!.content, cellStyles } });
+                                                        }}
+                                                    />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <label className="text-[10px] text-gray-400 block">자간</label>
+                                                    <input type="range" min="-5" max="20" step="1" className="w-full h-4"
+                                                        value={parseInt(selectedBlock.content.cellStyles?.[`${selectedCell.r}-${selectedCell.c}`]?.letterSpacing || '0')}
+                                                        onChange={(e) => {
+                                                            const key = `${selectedCell.r}-${selectedCell.c}`;
+                                                            const cellStyles = { ...(selectedBlock.content.cellStyles || {}), [key]: { ...(selectedBlock.content.cellStyles?.[key] || {}), letterSpacing: e.target.value + 'px' } };
+                                                            updateBlock(selectedBlock!.id, { content: { ...selectedBlock!.content, cellStyles } });
+                                                        }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <label className="text-xs font-bold text-gray-400 mb-1 block">기본 글꼴 크기</label>
+                                            <input type="text" className="w-full p-2 border rounded-lg text-xs bg-gray-50" value={selectedBlock.style.fontSize} onChange={(e) => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, fontSize: e.target.value } })} />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-bold text-gray-400 mb-1 block">표 테두리 색상</label>
+                                            <input type="color" className="w-full h-8 border rounded-lg cursor-pointer" value={selectedBlock.style.borderColor} onChange={(e) => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, borderColor: e.target.value } })} />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {selectedBlock.type === 'card' && (
+                                <div className="space-y-4">
+                                    <div className="grid grid-cols-3 gap-2">
+                                        <div className="col-span-1">
+                                            <label className="text-xs font-bold text-gray-400 mb-1 block">배경 숫자</label>
+                                            <input type="text" maxLength={3} className="w-full p-2 border rounded-lg text-sm bg-gray-50 text-center font-black" value={selectedBlock.content.badgeText || ''} onChange={(e) => updateBlock(selectedBlock!.id, { content: { ...selectedBlock!.content, badgeText: e.target.value } })} />
+                                        </div>
+                                        <div className="col-span-2">
+                                            <label className="text-xs font-bold text-gray-400 mb-1 block">카드 제목</label>
+                                            <input type="text" className="w-full p-2 border rounded-lg text-sm bg-gray-50 focus:bg-white" value={selectedBlock.content.title || ''} onChange={(e) => updateBlock(selectedBlock!.id, { content: { ...selectedBlock!.content, title: e.target.value } })} />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-400 mb-1 block">카드 설명</label>
+                                        <textarea className="w-full p-2 border rounded-lg text-sm bg-gray-50 focus:bg-white h-24" value={selectedBlock.content.text || ''} onChange={(e) => updateBlock(selectedBlock!.id, { content: { ...selectedBlock!.content, text: e.target.value } })} />
+                                    </div>
+                                    <div className="p-3 bg-purple-50 rounded-xl border border-purple-100 space-y-3">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-[10px] font-bold text-purple-600 uppercase">포인트 디자인 (Accent)</span>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <div>
+                                                <label className="text-[10px] font-bold text-gray-400 block mb-1">선 위치</label>
+                                                <select className="w-full p-1 text-[10px] border rounded" value={selectedBlock.style.accentSide || 'none'} onChange={(e) => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, accentSide: e.target.value as any } })}>
+                                                    <option value="none">없음</option>
+                                                    <option value="top">상단</option>
+                                                    <option value="bottom">하단</option>
+                                                    <option value="left">좌측</option>
+                                                    <option value="right">우측</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="text-[10px] font-bold text-gray-400 block mb-1">선 색상</label>
+                                                <input type="color" className="w-full h-6 border rounded cursor-pointer" value={selectedBlock.style.accentColor || "#2563eb"} onChange={(e) => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, accentColor: e.target.value } })} />
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <div>
+                                                <label className="text-[10px] font-bold text-gray-400 block mb-1">숫자 색상</label>
+                                                <input type="color" className="w-full h-6 border rounded cursor-pointer" value={selectedBlock.style.badgeColor || "#e0e7ff"} onChange={(e) => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, badgeColor: e.target.value } })} />
+                                            </div>
+                                            <div>
+                                                <label className="text-[10px] font-bold text-gray-400 block mb-1">제목 색상</label>
+                                                <input type="color" className="w-full h-6 border rounded cursor-pointer" value={selectedBlock.style.color || "#000000"} onChange={(e) => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, color: e.target.value } })} />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <label className="text-xs font-bold text-gray-400 mb-1 block">카드 배경색</label>
+                                            <input type="color" className="w-full h-8 border rounded-lg cursor-pointer" value={selectedBlock.style.backgroundColor || "#ffffff"} onChange={(e) => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, backgroundColor: e.target.value } })} />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-bold text-gray-400 mb-1 block">모서리 곡률</label>
+                                            <input type="text" className="w-full p-2 border rounded-lg text-xs bg-gray-50" placeholder="12px" value={selectedBlock.style.borderRadius} onChange={(e) => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, borderRadius: e.target.value } })} />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <label className="text-xs font-bold text-gray-400 mb-1 block">카드 높이(Height)</label>
+                                            <input type="text" className="w-full p-2 border rounded-lg text-xs bg-gray-50" placeholder="auto 또는 200px" value={selectedBlock.style.height || ''} onChange={(e) => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, height: e.target.value } })} />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-bold text-gray-400 mb-1 block">구분점(Bullet)</label>
+                                            <select className="w-full p-2 border rounded-lg text-xs bg-gray-50" value={selectedBlock.content.bulletType || 'none'} onChange={(e) => updateBlock(selectedBlock!.id, { content: { ...selectedBlock!.content, bulletType: e.target.value as any } })}>
+                                                <option value="none">없음</option>
+                                                <option value="dot">쩜 (Circle)</option>
+                                                <option value="check">체크 (Check)</option>
+                                                <option value="square">네모 (Square)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-3 bg-gray-50 rounded-xl border space-y-3">
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase">타이포그래피 (텍스트 설정)</label>
+                                        <div className="flex gap-2">
+                                            <div className="flex-1">
+                                                <label className="text-[10px] text-gray-400 block">글꼴 크기</label>
+                                                <div className="flex items-center gap-1 border rounded p-1 bg-white">
+                                                    <button className="w-5 h-5 hover:bg-gray-100 rounded" onClick={() => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, fontSize: changeFontSize(selectedBlock!.style.fontSize, -1) } })}>-</button>
+                                                    <span className="flex-1 text-center text-[10px] font-mono">{selectedBlock.style.fontSize}</span>
+                                                    <button className="w-5 h-5 hover:bg-gray-100 rounded" onClick={() => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, fontSize: changeFontSize(selectedBlock!.style.fontSize, 1) } })}>+</button>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label className="text-[10px] text-gray-400 block">정렬</label>
+                                                <div className="flex gap-1 border rounded p-1 bg-white">
+                                                    {[
+                                                        { v: 'left', i: AlignLeft },
+                                                        { v: 'center', i: AlignCenter },
+                                                        { v: 'right', i: AlignRight }
+                                                    ].map(a => (
+                                                        <button key={a.v} onClick={() => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, textAlign: a.v as any } })} className={`p-1 rounded ${selectedBlock!.style.textAlign === a.v ? "bg-purple-100 text-purple-600" : "hover:bg-gray-100 text-gray-400"}`}><a.i className="w-3 h-3" /></button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <button className={`flex-1 flex justify-center items-center gap-2 p-1.5 rounded border text-[10px] font-bold ${selectedBlock.style.fontWeight === 'bold' ? "bg-purple-100 text-purple-700 border-purple-200" : "bg-white"}`} onClick={() => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, fontWeight: selectedBlock!.style.fontWeight === 'bold' ? 'normal' : 'bold' } })}><Bold className="w-3 h-3" /> 굵게</button>
+                                            <select
+                                                className="flex-1 p-1.5 border rounded text-[10px] bg-white outline-none"
+                                                value={selectedBlock.style.fontFamily || ""}
+                                                onChange={(e) => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, fontFamily: e.target.value } })}
+                                            >
+                                                {FONTS.map(font => (
+                                                    <option key={font.value} value={font.value}>{font.label}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <div className="flex-1">
+                                                <label className="text-[10px] text-gray-400 block">행간</label>
+                                                <input type="range" min="0.8" max="3" step="0.1" className="w-full" value={parseFloat(selectedBlock.style.lineHeight || '1.5')} onChange={(e) => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, lineHeight: e.target.value } })} />
+                                            </div>
+                                            <div className="flex-1">
+                                                <label className="text-[10px] text-gray-400 block">자간</label>
+                                                <input type="range" min="-5" max="20" step="1" className="w-full" value={parseInt(selectedBlock.style.letterSpacing || '0')} onChange={(e) => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, letterSpacing: e.target.value + 'px' } })} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-400 mb-1 block">그림자 효과 (Shadow)</label>
+                                        <select className="w-full p-2 border rounded-lg text-xs bg-gray-50" value={selectedBlock.style.boxShadow} onChange={(e) => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, boxShadow: e.target.value } })}>
+                                            <option value="none">없음</option>
+                                            <option value="0 4px 6px -1px rgba(0,0,0,0.1)">약하게</option>
+                                            <option value="0 10px 15px -3px rgba(0,0,0,0.1)">보통</option>
+                                            <option value="0 20px 25px -5px rgba(0,0,0,0.1)">강하게</option>
+                                            <option value="0 10px 25px -5px rgba(0,0,0,0.05)">부드럽게 (Modern)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            )}
+
+                            {selectedBlock.type === 'video' && (
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-400 mb-1 block">동영상 주소 (YouTube / Vimeo)</label>
+                                        <textarea
+                                            className="w-full p-2 border rounded-lg text-xs bg-gray-50 focus:bg-white h-24"
+                                            placeholder="YouTube 또는 Vimeo 링크를 입력하세요."
+                                            value={selectedBlock.content.url || ''}
+                                            onChange={(e) => updateBlock(selectedBlock!.id, { content: { ...selectedBlock!.content, url: e.target.value } })}
+                                        />
+                                        <p className="text-[10px] text-gray-400 mt-1">* 공유 버튼의 URL을 복사해 넣으세요.</p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="checkbox"
+                                            id="video-autoplay"
+                                            checked={selectedBlock.content.autoPlay || false}
+                                            onChange={(e) => updateBlock(selectedBlock!.id, { content: { ...selectedBlock!.content, autoPlay: e.target.checked } })}
+                                        />
+                                        <label htmlFor="video-autoplay" className="text-xs font-bold text-gray-500 cursor-pointer">자동 재생 (Auto Play)</label>
                                     </div>
                                 </div>
                             )}

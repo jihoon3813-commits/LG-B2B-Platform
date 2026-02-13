@@ -12,7 +12,9 @@ import {
     LogOut,
     Menu
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
 
 const menuItems = [
     { name: "대시보드", href: "/dashboard", icon: LayoutDashboard },
@@ -26,6 +28,17 @@ const menuItems = [
 export default function Sidebar() {
     const pathname = usePathname();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [userEmail, setUserEmail] = useState("");
+
+    useEffect(() => {
+        const email = localStorage.getItem("user_email");
+        if (email) setUserEmail(email);
+    }, []);
+
+    const user = useQuery(api.users.getMe, userEmail ? { email: userEmail } : "skip");
+
+    const userRoleLabel = user?.role === "admin" ? "최고 관리자" : "운영자";
+    const userName = user?.name || "관리자";
 
     return (
         <>
@@ -74,11 +87,11 @@ export default function Sidebar() {
                     <div className="p-4 border-t border-[var(--border)] bg-[var(--bg-body)]/50">
                         <div className="flex items-center space-x-3 mb-4 px-2">
                             <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[var(--primary)] to-pink-500 flex items-center justify-center text-white font-bold shadow-sm">
-                                A
+                                {userName.substring(0, 1)}
                             </div>
                             <div className="flex-1 overflow-hidden">
-                                <p className="text-sm font-semibold truncate">관리자</p>
-                                <p className="text-xs text-[var(--text-sub)] truncate">최고 관리자</p>
+                                <p className="text-sm font-semibold truncate">{userName}</p>
+                                <p className="text-xs text-[var(--text-sub)] truncate">{userRoleLabel}</p>
                             </div>
                         </div>
 

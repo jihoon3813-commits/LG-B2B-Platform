@@ -2,10 +2,19 @@
 
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
-import { useState } from "react";
-import { Plus, Trash2, Edit, ExternalLink, Smartphone } from "lucide-react";
+import { Plus, Trash2, Edit, ExternalLink, Smartphone, Calendar } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Id } from "../../../../convex/_generated/dataModel";
+
+interface Campaign {
+    _id: Id<"campaigns">;
+    _creationTime: number;
+    title: string;
+    status: string;
+    thumbnailUrl?: string;
+    viewCount?: number;
+}
 
 export default function CampaignListPage() {
     const campaigns = useQuery(api.campaigns.list);
@@ -25,7 +34,7 @@ export default function CampaignListPage() {
         router.push(`/dashboard/campaigns/editor/${id}`);
     };
 
-    const handleDelete = async (id: any) => {
+    const handleDelete = async (id: Id<"campaigns">) => {
         if (confirm("정말로 삭제하시겠습니까?")) {
             await deleteCampaign({ id });
         }
@@ -45,34 +54,83 @@ export default function CampaignListPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {campaigns?.map((campaign: any) => (
-                    <div key={campaign._id} className="bg-white rounded-xl border p-4 hover:shadow-lg transition-all flex flex-col">
-                        <div className="aspect-[9/16] bg-gray-100 rounded-lg mb-4 flex items-center justify-center relative group overflow-hidden border">
+                {(campaigns as Campaign[] | undefined)?.map((campaign) => (
+                    <div
+                        key={campaign._id}
+                        className="bg-white rounded-[24px] border border-gray-100 overflow-hidden hover:shadow-2xl transition-all group flex flex-col h-full cursor-pointer"
+                        onClick={() => router.push(`/dashboard/campaigns/editor/${campaign._id}`)}
+                    >
+                        {/* Preview Area */}
+                        <div className="aspect-[9/16] bg-gray-50 flex items-center justify-center relative overflow-hidden border-b border-gray-50">
                             {campaign.thumbnailUrl ? (
-                                <img src={campaign.thumbnailUrl} className="w-full h-full object-cover" />
+                                <img src={campaign.thumbnailUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                             ) : (
-                                <div className="text-gray-400 flex flex-col items-center">
-                                    <Smartphone className="w-8 h-8 mb-2" />
-                                    <span className="text-xs">No Preview</span>
+                                <div className="text-gray-300 flex flex-col items-center">
+                                    <Smartphone className="w-12 h-12 mb-3 opacity-20" />
+                                    <span className="text-[10px] font-black tracking-widest uppercase opacity-40">No Preview</span>
                                 </div>
                             )}
-                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity gap-2">
-                                <Link href={`/campaign/${campaign._id}`} target="_blank" className="p-2 bg-white rounded-full hover:bg-gray-200"><ExternalLink className="w-4 h-4" /></Link>
-                                <Link href={`/dashboard/campaigns/editor/${campaign._id}`} className="p-2 bg-white rounded-full hover:bg-gray-200"><Edit className="w-4 h-4" /></Link>
+
+                            {/* Status Badge */}
+                            <div className="absolute top-4 left-4 z-10">
+                                <span className={`px-3 py-1.5 rounded-xl text-[10px] font-black tracking-tight shadow-sm ${campaign.status === "published"
+                                    ? "bg-green-500 text-white"
+                                    : "bg-white/90 backdrop-blur-md text-gray-600"
+                                    }`}>
+                                    {campaign.status === "published" ? "LIVE" : "DRAFT"}
+                                </span>
+                            </div>
+
+                            {/* Hover Overlay */}
+                            <div className="absolute inset-0 bg-gray-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 backdrop-blur-[2px]">
+                                <div className="bg-white p-3 rounded-2xl shadow-xl transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+                                    <Edit className="w-6 h-6 text-gray-900" />
+                                </div>
                             </div>
                         </div>
 
-                        <div className="flex justify-between items-start mb-2">
-                            <div>
-                                <h3 className="font-bold text-lg">{campaign.title}</h3>
-                                <span className={`text-xs px-2 py-1 rounded ${campaign.status === "published" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}`}>
-                                    {campaign.status === "published" ? "공개됨" : "작성 중"}
-                                </span>
+                        {/* Info Area */}
+                        <div className="p-5 space-y-4 flex-1 flex flex-col">
+                            <div className="flex justify-between items-start gap-3">
+                                <div className="flex-1 min-w-0">
+                                    <h3 className="font-black text-gray-900 truncate group-hover:text-blue-600 transition-colors">{campaign.title}</h3>
+                                    <p className="text-[10px] font-bold text-gray-400 mt-1 flex items-center gap-1">
+                                        <Calendar className="w-3 h-3" />
+                                        {new Date(campaign._creationTime).toLocaleDateString()}
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDelete(campaign._id);
+                                    }}
+                                    className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
                             </div>
-                            <button onClick={() => handleDelete(campaign._id)} className="text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
-                        </div>
-                        <div className="mt-auto text-xs text-gray-400">
-                            조회수: {campaign.viewCount || 0}
+
+                            <div className="flex items-center justify-between pt-2 border-t border-gray-50 mt-auto">
+                                <div className="flex items-center gap-2">
+                                    <div className="flex -space-x-2">
+                                        <div className="w-6 h-6 rounded-full border-2 border-white bg-blue-100 flex items-center justify-center text-[8px] font-black text-blue-600">V</div>
+                                    </div>
+                                    <span className="text-[10px] font-black text-gray-400">View: {campaign.viewCount || 0}</span>
+                                </div>
+                                <div className="flex gap-2">
+                                    <Link
+                                        href={`/campaign/${campaign._id}`}
+                                        target="_blank"
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
+                                    >
+                                        <ExternalLink className="w-4 h-4" />
+                                    </Link>
+                                    <div className="px-4 py-2 bg-gray-50 group-hover:bg-blue-600 group-hover:text-white rounded-xl text-[10px] font-black transition-all">
+                                        디자인 수정
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 ))}

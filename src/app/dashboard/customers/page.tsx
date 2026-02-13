@@ -105,6 +105,7 @@ export default function CustomersPage() {
     const createGroup = useMutation(api.customerGroups.create);
     const updateGroup = useMutation(api.customerGroups.update);
     const deleteGroup = useMutation(api.customerGroups.remove);
+    const bulkRemoveCustomers = useMutation(api.customers.bulkRemove);
 
     const [isImporting, setIsImporting] = useState(false);
     const [selectedIds, setSelectedIds] = useState<Id<"customers">[]>([]);
@@ -133,8 +134,8 @@ export default function CustomersPage() {
 
     // Fetch History for selected customer
     const customerHistory = useQuery(api.campaignHistory.getByCustomer,
-        selectedCustomer ? { customerId: selectedCustomer._id } : "skip" as any
-    );
+        selectedCustomer ? { customerId: selectedCustomer._id } : "skip"
+    ) as any[];
 
     // Searching logic (matching against what's returned from the list query)
     const filteredCustomers = useMemo(() => {
@@ -146,6 +147,19 @@ export default function CustomersPage() {
             (c.phoneNumber && c.phoneNumber.includes(searchTerm))
         );
     }, [customers, searchTerm]);
+
+    const handleBulkDelete = async () => {
+        if (!selectedIds.length) return;
+        if (!window.confirm(`선택한 ${selectedIds.length}명의 고객 정보를 삭제하시겠습니까?`)) return;
+        try {
+            await bulkRemoveCustomers({ ids: selectedIds });
+            setSelectedIds([]);
+            alert("삭제되었습니다.");
+        } catch (err) {
+            console.error(err);
+            alert("삭제 중 오류가 발생했습니다.");
+        }
+    };
 
     const paginatedCustomers = useMemo(() => {
         const startIndex = (currentPage - 1) * pageSize;
@@ -283,7 +297,7 @@ export default function CustomersPage() {
             try {
                 const bstr = evt.target?.result;
                 const wb = XLSX.read(bstr, { type: "binary" });
-                const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]) as any[];
+                const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]) as Record<string, any>[];
                 for (const row of rows) {
                     const name = row.name || row['이름'] || "이름없음";
                     const company = row.company || row['소속'] || row['회사명'];
@@ -403,6 +417,9 @@ export default function CustomersPage() {
                             </button>
                             <button onClick={() => setIsMoveGroupModalOpen(true)} className="flex items-center gap-2 text-sm bg-gray-700 hover:bg-gray-600 px-4 py-1.5 rounded-lg transition-all font-bold">
                                 <Users className="w-4 h-4" /> 그룹 이동
+                            </button>
+                            <button onClick={handleBulkDelete} className="flex items-center gap-2 text-sm bg-red-600 hover:bg-red-500 px-4 py-1.5 rounded-lg transition-all font-bold">
+                                <Trash2 className="w-4 h-4" /> 삭제
                             </button>
                         </div>
                         <button onClick={() => setSelectedIds([])} className="text-sm text-gray-400 hover:text-white">취소</button>
