@@ -4,7 +4,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../../../convex/_generated/api";
 import { useState, useEffect, useCallback } from "react";
 import {
-    Type, Image as ImageIcon, Video, MoveVertical, Save, ExternalLink, ChevronLeft, MousePointer2, Pencil, Bold, Link as LinkIcon, AlignLeft, AlignCenter, AlignRight, Layout, ImagePlus, Table as TableIcon, CreditCard, Check, Circle, Square
+    Type, Image as ImageIcon, Video, MoveVertical, Save, ExternalLink, ChevronLeft, MousePointer2, Pencil, Bold, Link as LinkIcon, AlignLeft, AlignCenter, AlignRight, Layout, ImagePlus, Table as TableIcon, CreditCard, Check, Circle, Square, Settings
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { Id } from "../../../../../../convex/_generated/dataModel";
@@ -24,6 +24,8 @@ interface Block {
         title?: string;    // Card title
         badgeText?: string; // Card background large number
         bulletType?: 'none' | 'dot' | 'check' | 'square';
+        subText?: string;   // Small sub-text with bullet
+        overlayText?: string; // Text over image
     };
     style: {
         fontSize?: string;
@@ -44,6 +46,7 @@ interface Block {
         accentSide?: 'top' | 'bottom' | 'left' | 'right' | 'none';
         accentColor?: string;
         badgeColor?: string;
+        overlayOpacity?: number;
     };
 }
 
@@ -115,6 +118,10 @@ export default function CampaignEditorPage() {
     const [selectedType, setSelectedType] = useState<'section' | 'block' | null>(null);
     const [selectedCell, setSelectedCell] = useState<{ r: number, c: number } | null>(null);
     const [title, setTitle] = useState("");
+    const [slug, setSlug] = useState("");
+    const [ogImage, setOgImage] = useState("");
+    const [ogDescription, setOgDescription] = useState("");
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
 
     // Define Handlers first to avoid hoisting issues
@@ -155,10 +162,10 @@ export default function CampaignEditorPage() {
         switch (type) {
             case 'text': return { text: '여기에 텍스트를 입력하세요.', link: '' };
             case 'button': return { text: '클릭하세요', url: '#' };
-            case 'image': return { url: '', alt: '이미지 설명', link: '' };
+            case 'image': return { url: '', alt: '이미지 설명', link: '', overlayText: '' };
             case 'video': return { url: '', autoPlay: false };
             case 'table': return { rows: [['구분', '내용'], ['항목1', '설명1'], ['항목2', '설명2']], cellStyles: {} };
-            case 'card': return { title: '제목을 입력하세요', text: '여기에 상세 내용을 입력하세요.', badgeText: '01' };
+            case 'card': return { title: '제목을 입력하세요', text: '여기에 상세 내용을 입력하세요.', badgeText: '01', subText: '' };
             default: return {};
         }
     };
@@ -166,7 +173,7 @@ export default function CampaignEditorPage() {
         switch (type) {
             case 'text': return { fontSize: '16px', color: '#000000', backgroundColor: 'transparent', textAlign: 'left', fontWeight: 'normal', fontFamily: FONTS[0].value, padding: '10px' };
             case 'button': return { backgroundColor: '#000000', color: '#ffffff', borderRadius: '4px', padding: '12px 20px', width: '100%', textAlign: 'center', fontSize: '16px', fontWeight: 'bold', fontFamily: FONTS[0].value };
-            case 'image': return { width: '100%', borderRadius: '0px', textAlign: 'center' };
+            case 'image': return { width: '100%', borderRadius: '0px', textAlign: 'center', overlayOpacity: 0, fontSize: '24px', color: '#ffffff', fontWeight: 'bold', fontFamily: FONTS[0].value };
             case 'table': return { fontSize: '14px', padding: '10px', backgroundColor: '#ffffff', borderColor: '#eeeeee', borderWidth: '1px' };
             case 'card': return { backgroundColor: '#ffffff', borderRadius: '12px', padding: '30px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', borderColor: '#f1f1f1', borderWidth: '1px', accentSide: 'top', accentColor: '#2563eb', badgeColor: '#e0e7ff' };
             case 'spacer': return { height: '20px' };
@@ -233,6 +240,10 @@ export default function CampaignEditorPage() {
     useEffect(() => {
         if (campaign) {
             setTitle(campaign.title);
+            setSlug(campaign.slug || "");
+            setOgImage(campaign.ogImage || "");
+            setOgDescription(campaign.ogDescription || "");
+
             const loadedBlocks = (campaign.blocks as (Section | Block)[]) || [];
             if (loadedBlocks.length > 0 && (loadedBlocks[0] as any).type !== 'section') {
                 const defaultSection: Section = {
@@ -251,9 +262,23 @@ export default function CampaignEditorPage() {
 
     const handleSave = async () => {
         setIsSaving(true);
-        await updateCampaign({ id: campaignId, title, blocks: sections, status: "published" });
-        setIsSaving(false);
-        alert("저장되었습니다.");
+        try {
+            await updateCampaign({
+                id: campaignId,
+                title,
+                blocks: sections,
+                status: "published",
+                slug: slug || undefined,
+                ogImage: ogImage || undefined,
+                ogDescription: ogDescription || undefined
+            });
+            alert("저장되었습니다.");
+            setIsSettingsOpen(false);
+        } catch (e: any) {
+            alert("저장 실패: " + e.message);
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const handleImageUpload = async (file: File) => {
@@ -295,10 +320,84 @@ export default function CampaignEditorPage() {
                     <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="text-xl font-bold bg-transparent border-none focus:ring-0 outline-none placeholder-gray-300" />
                 </div>
                 <div className="flex gap-2">
-                    <a href={`/campaign/${campaignId}`} target="_blank" className="btn btn-secondary text-sm"><ExternalLink className="w-4 h-4 mr-2" /> 미리보기</a>
+                    <button onClick={() => setIsSettingsOpen(true)} className="btn btn-ghost text-sm"><Settings className="w-4 h-4 mr-2" /> 설정</button>
+                    <a href={slug ? `/c/${slug}` : `/campaign/${campaignId}`} target="_blank" className="btn btn-secondary text-sm"><ExternalLink className="w-4 h-4 mr-2" /> 미리보기</a>
                     <button onClick={handleSave} className="btn btn-primary text-sm" disabled={isSaving}><Save className="w-4 h-4 mr-2" /> {isSaving ? "저장 중..." : "저장하기"}</button>
                 </div>
             </div>
+
+            {/* Settings Modal */}
+            {isSettingsOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setIsSettingsOpen(false)}>
+                    <div className="bg-white rounded-2xl shadow-2xl w-[500px] overflow-hidden" onClick={e => e.stopPropagation()}>
+                        <div className="p-5 border-b flex justify-between items-center bg-gray-50">
+                            <h3 className="font-bold text-lg">캠페인 설정</h3>
+                            <button onClick={() => setIsSettingsOpen(false)} className="text-gray-400 hover:text-black">✕</button>
+                        </div>
+                        <div className="p-6 space-y-6">
+                            <div>
+                                <label className="text-sm font-bold text-gray-700 mb-2 block">단축 URL (Slug)</label>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-gray-400 text-sm">lg-b2b-platform.vercel.app/c/</span>
+                                    <input
+                                        type="text"
+                                        className="flex-1 p-2 border rounded-lg text-sm font-bold text-blue-600 focus:ring-2 focus:ring-blue-500 outline-none"
+                                        placeholder="event-2024"
+                                        value={slug}
+                                        onChange={(e) => setSlug(e.target.value.replace(/[^a-zA-Z0-9-_]/g, ''))}
+                                    />
+                                </div>
+                                <p className="text-xs text-gray-400 mt-1">영문, 숫자, 하이픈(-)만 사용 가능합니다.</p>
+                            </div>
+
+                            <div className="border-t pt-4">
+                                <h4 className="font-bold text-sm mb-4 text-gray-700 flex items-center gap-2"><div className="w-1 h-4 bg-purple-500 rounded-full"></div> SNS 공유 설정</h4>
+
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-500 mb-1.5 block">썸네일 이미지 (OG Image)</label>
+                                        <div className="flex items-start gap-4">
+                                            <div className="w-24 h-24 bg-gray-100 rounded-lg overflow-hidden border flex items-center justify-center flex-shrink-0">
+                                                {ogImage ? (
+                                                    ogImage.startsWith('http') ? <img src={ogImage} alt="OG" className="w-full h-full object-cover" /> : <StorageImage storageId={ogImage} className="w-full h-full object-cover" />
+                                                ) : <ImageIcon className="text-gray-300 w-8 h-8" />}
+                                            </div>
+                                            <div className="flex-1">
+                                                <label className="btn btn-sm btn-outline w-full cursor-pointer mb-2">
+                                                    이미지 업로드
+                                                    <input type="file" className="hidden" accept="image/*" onChange={async (e) => {
+                                                        const file = e.target.files?.[0];
+                                                        if (file) {
+                                                            const id = await handleImageUpload(file);
+                                                            if (id) setOgImage(id);
+                                                        }
+                                                    }} />
+                                                </label>
+                                                <p className="text-[10px] text-gray-400">권장 사이즈: 1200 x 630 px</p>
+                                                {ogImage && <button onClick={() => setOgImage("")} className="text-xs text-red-500 mt-1 hover:underline">이미지 삭제</button>}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-500 mb-1.5 block">설명 문구 (Description)</label>
+                                        <textarea
+                                            className="w-full p-3 border rounded-lg text-sm h-20 bg-gray-50 focus:bg-white transition-colors resize-none"
+                                            placeholder="카카오톡/링크 공유 시 보여질 설명을 입력하세요."
+                                            value={ogDescription}
+                                            onChange={(e) => setOgDescription(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="p-4 bg-gray-50 border-t flex justify-end gap-2">
+                            <button onClick={() => setIsSettingsOpen(false)} className="btn btn-ghost text-sm">취소</button>
+                            <button onClick={handleSave} className="btn btn-primary text-sm" disabled={isSaving}>설정 저장하기</button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <div className="flex flex-1 overflow-hidden">
                 {/* Left Toolbar */}
@@ -379,11 +478,33 @@ export default function CampaignEditorPage() {
                                                 {block.type === 'text' && <div style={block.style} className="whitespace-pre-wrap">{block.content.text}</div>}
                                                 {block.type === 'image' && (
                                                     <div style={{ display: 'flex', justifyContent: block.style.textAlign === 'left' ? 'flex-start' : block.style.textAlign === 'right' ? 'flex-end' : 'center', width: '100%' }}>
-                                                        {block.content.url ? (
-                                                            block.content.url.startsWith('http')
-                                                                ? <img src={block.content.url} alt="" style={{ ...block.style, maxWidth: '100%', objectFit: (block.style.width || block.style.height) ? 'cover' : 'contain' }} />
-                                                                : <StorageImage storageId={block.content.url} style={{ ...block.style, maxWidth: '100%', objectFit: (block.style.width || block.style.height) ? 'cover' : 'contain' }} />
-                                                        ) : <div className="bg-gray-100 h-20 flex items-center justify-center text-xs text-gray-400">이미지 없음</div>}
+                                                        <div className="relative overflow-hidden" style={{ width: block.style.width || '100%', height: block.style.height || 'auto', borderRadius: block.style.borderRadius }}>
+                                                            {block.content.url ? (
+                                                                block.content.url.startsWith('http')
+                                                                    ? <img src={block.content.url} alt="" style={{ width: '100%', height: '100%', objectFit: (block.style.width || block.style.height) === 'auto' ? 'contain' : 'cover', display: 'block' }} />
+                                                                    : <StorageImage storageId={block.content.url} style={{ width: '100%', height: '100%', objectFit: (block.style.width || block.style.height) === 'auto' ? 'contain' : 'cover', display: 'block' }} />
+                                                            ) : <div className="bg-gray-100 h-20 flex items-center justify-center text-xs text-gray-400">이미지 없음</div>}
+
+                                                            {/* Overlay */}
+                                                            <div className="absolute inset-0 bg-black pointer-events-none transition-opacity" style={{ opacity: block.style.overlayOpacity ?? 0 }}></div>
+
+                                                            {/* Text on Image */}
+                                                            {block.content.overlayText && (
+                                                                <div className="absolute inset-0 flex flex-col justify-center p-6 pointer-events-none" style={{ textAlign: block.style.textAlign || 'center' }}>
+                                                                    <p className="whitespace-pre-wrap leading-relaxed" style={{
+                                                                        fontSize: block.style.fontSize || '24px',
+                                                                        color: block.style.color || '#ffffff',
+                                                                        fontWeight: block.style.fontWeight,
+                                                                        fontFamily: block.style.fontFamily,
+                                                                        lineHeight: block.style.lineHeight,
+                                                                        letterSpacing: block.style.letterSpacing,
+                                                                        textShadow: '0 2px 10px rgba(0,0,0,0.3)'
+                                                                    }}>
+                                                                        {block.content.overlayText}
+                                                                    </p>
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 )}
                                                 {block.type === 'video' && (
@@ -492,7 +613,7 @@ export default function CampaignEditorPage() {
                                                             )}
                                                             <div className="relative z-10 h-full flex flex-col" style={{ height: block.style.height ? '100%' : 'auto' }}>
                                                                 <h4 className="font-black mb-2" style={{ color: block.style.color, fontSize: `calc(${block.style.fontSize || '16px'} + 2px)`, textAlign: block.style.textAlign }}>{block.content.title}</h4>
-                                                                <div className="flex gap-2" style={{
+                                                                <div className="flex flex-col gap-2" style={{
                                                                     color: block.style.color,
                                                                     fontSize: block.style.fontSize,
                                                                     textAlign: block.style.textAlign,
@@ -501,15 +622,33 @@ export default function CampaignEditorPage() {
                                                                     fontWeight: block.style.fontWeight,
                                                                     whiteSpace: 'pre-wrap'
                                                                 }}>
-                                                                    {block.content.bulletType && block.content.bulletType !== 'none' && (
-                                                                        <div className="mt-1 flex-shrink-0">
-                                                                            {block.content.bulletType === 'dot' && <Circle className="w-2 h-2 fill-current" />}
-                                                                            {block.content.bulletType === 'check' && <Check className="w-3 h-3" strokeWidth={3} />}
-                                                                            {block.content.bulletType === 'square' && <Square className="w-2 h-2 fill-current" />}
+                                                                    {(block.content.text || '').split('\n').map((line, i) => (
+                                                                        <div key={i} className="flex gap-2 items-start">
+                                                                            {block.content.bulletType && block.content.bulletType !== 'none' && (
+                                                                                <div className="mt-1 flex-shrink-0">
+                                                                                    {block.content.bulletType === 'dot' && <Circle className="w-2 h-2 fill-current" />}
+                                                                                    {block.content.bulletType === 'check' && <Check className="w-3 h-3" strokeWidth={3} />}
+                                                                                    {block.content.bulletType === 'square' && <Square className="w-2 h-2 fill-current" />}
+                                                                                </div>
+                                                                            )}
+                                                                            <p className="opacity-80 flex-1">{line}</p>
                                                                         </div>
-                                                                    )}
-                                                                    <p className="opacity-80 flex-1">{block.content.text}</p>
+                                                                    ))}
                                                                 </div>
+                                                                {block.content.subText && (
+                                                                    <div className="mt-3 pt-3 border-t border-gray-100 flex flex-col gap-1" style={{
+                                                                        color: block.style.color,
+                                                                        opacity: 0.7,
+                                                                        fontSize: `calc(${block.style.fontSize || '16px'} - 2px)`
+                                                                    }}>
+                                                                        {(block.content.subText || '').split('\n').map((line, i) => (
+                                                                            <div key={i} className="flex gap-2 items-start">
+                                                                                <div className="mt-1.5 w-1 h-1 rounded-full bg-current opacity-50 flex-shrink-0" />
+                                                                                <p className="flex-1 leading-relaxed">{line}</p>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         </div>
                                                     </div>
@@ -678,6 +817,77 @@ export default function CampaignEditorPage() {
                                         <div>
                                             <label className="text-xs font-bold text-gray-400 mb-1 block">세로 크기 (Height)</label>
                                             <input type="text" className="w-full p-2 border rounded-lg text-xs bg-gray-50" placeholder="auto 또는 200px" value={selectedBlock.style.height || ''} onChange={(e) => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, height: e.target.value } })} />
+                                        </div>
+                                    </div>
+
+                                    {/* Image Overlay & Text Settings */}
+                                    <div className="border-t pt-4">
+                                        <h4 className="font-bold text-sm mb-4 text-gray-700 flex items-center gap-2"><div className="w-1 h-3 bg-blue-500 rounded-full"></div> 이미지 위 텍스트 & 효과</h4>
+                                        <div className="space-y-4">
+                                            <div>
+                                                <label className="text-xs font-bold text-gray-400 mb-1 block">이미지 음영 (Overlay Opacity)</label>
+                                                <div className="flex items-center gap-3 bg-gray-50 p-2 rounded-lg border">
+                                                    <input type="range" min="0" max="0.8" step="0.1" className="flex-1" value={selectedBlock.style.overlayOpacity ?? 0} onChange={(e) => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, overlayOpacity: parseFloat(e.target.value) } })} />
+                                                    <span className="text-xs font-mono w-8 text-right">{Math.round((selectedBlock.style.overlayOpacity ?? 0) * 100)}%</span>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label className="text-xs font-bold text-gray-400 mb-1 block">오버레이 텍스트</label>
+                                                <textarea className="w-full p-2 border rounded-lg text-sm bg-gray-50 h-20" placeholder="이미지 위에 표시할 텍스트를 입력하세요." value={selectedBlock.content.overlayText || ''} onChange={(e) => updateBlock(selectedBlock!.id, { content: { ...selectedBlock!.content, overlayText: e.target.value } })} />
+                                            </div>
+                                            {selectedBlock.content.overlayText && (
+                                                <div className="space-y-3 animate-fade-in pl-2 border-l-2 border-blue-100">
+                                                    <div className="flex gap-2">
+                                                        <div className="flex-1">
+                                                            <label className="text-[10px] font-bold text-gray-400 mb-1 block">크기</label>
+                                                            <div className="flex items-center gap-1 border rounded-lg p-1 bg-gray-50">
+                                                                <button className="w-6 h-6 hover:bg-white rounded" onClick={() => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, fontSize: changeFontSize(selectedBlock!.style.fontSize || '24px', -1) } })}>-</button>
+                                                                <span className="flex-1 text-center text-xs font-mono">{selectedBlock.style.fontSize || '24px'}</span>
+                                                                <button className="w-6 h-6 hover:bg-white rounded" onClick={() => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, fontSize: changeFontSize(selectedBlock!.style.fontSize || '24px', 1) } })}>+</button>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <label className="text-[10px] font-bold text-gray-400 mb-1 block">정렬</label>
+                                                            <div className="flex gap-1 border rounded-lg p-1 bg-gray-50 text-gray-400">
+                                                                {[
+                                                                    { v: 'left', i: AlignLeft },
+                                                                    { v: 'center', i: AlignCenter },
+                                                                    { v: 'right', i: AlignRight }
+                                                                ].map(a => (
+                                                                    <button key={a.v} onClick={() => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, textAlign: a.v as any } })} className={`p-1 flex-1 flex justify-center rounded ${selectedBlock!.style.textAlign === a.v ? "bg-white text-purple-600 shadow-sm" : "hover:bg-white"}`}><a.i className="w-3 h-3" /></button>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <button className={`flex-1 flex justify-center items-center gap-1 p-1.5 rounded-lg border text-xs font-bold ${selectedBlock.style.fontWeight === 'bold' ? "bg-purple-100 text-purple-700 border-purple-200" : "bg-gray-50"}`} onClick={() => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, fontWeight: selectedBlock!.style.fontWeight === 'bold' ? 'normal' : 'bold' } })}><Bold className="w-3 h-3" /> 굵게</button>
+                                                        <div className="flex-1 flex gap-2 p-1.5 rounded-lg border bg-gray-50 items-center justify-center">
+                                                            <input type="color" className="w-4 h-4 border-none cursor-pointer" value={selectedBlock.style.color || '#ffffff'} onChange={(e) => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, color: e.target.value } })} />
+                                                            <span className="text-[10px] font-mono">COLOR</span>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[10px] font-bold text-gray-400 mb-1 block">폰트</label>
+                                                        <select
+                                                            className="w-full p-1.5 border rounded-lg text-xs bg-gray-50 outline-none"
+                                                            value={selectedBlock.style.fontFamily || FONTS[0].value}
+                                                            onChange={(e) => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, fontFamily: e.target.value } })}
+                                                        >
+                                                            {FONTS.map(font => <option key={font.value} value={font.value}>{font.label}</option>)}
+                                                        </select>
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <div className="flex-1">
+                                                            <label className="text-[10px] font-bold text-gray-400 mb-1 block">행간</label>
+                                                            <input type="range" min="0.8" max="2" step="0.1" className="w-full h-2" value={parseFloat(selectedBlock.style.lineHeight || '1.4')} onChange={(e) => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, lineHeight: e.target.value } })} />
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <label className="text-[10px] font-bold text-gray-400 mb-1 block">자간</label>
+                                                            <input type="range" min="-2" max="10" step="1" className="w-full h-2" value={parseInt(selectedBlock.style.letterSpacing || '0')} onChange={(e) => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, letterSpacing: e.target.value + 'px' } })} />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -882,8 +1092,12 @@ export default function CampaignEditorPage() {
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="text-xs font-bold text-gray-400 mb-1 block">카드 설명</label>
+                                        <label className="text-xs font-bold text-gray-400 mb-1 block">내용</label>
                                         <textarea className="w-full p-2 border rounded-lg text-sm bg-gray-50 focus:bg-white h-24" value={selectedBlock.content.text || ''} onChange={(e) => updateBlock(selectedBlock!.id, { content: { ...selectedBlock!.content, text: e.target.value } })} />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-400 mb-1 block">서브 내용 (하단 구분선 포함)</label>
+                                        <textarea className="w-full p-2 border rounded-lg text-sm bg-gray-50 h-16" placeholder="작은 글씨로 표시될 부가 설명을 입력하세요." value={selectedBlock.content.subText || ''} onChange={(e) => updateBlock(selectedBlock!.id, { content: { ...selectedBlock!.content, subText: e.target.value } })} />
                                     </div>
                                     <div className="p-3 bg-purple-50 rounded-xl border border-purple-100 space-y-3">
                                         <div className="flex justify-between items-center">

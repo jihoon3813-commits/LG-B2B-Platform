@@ -3,23 +3,42 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
 // 캠페인 생성
+// 캠페인 생성
 export const create = mutation({
     args: {
         title: v.string(),
         blocks: v.any(), // JSON
         status: v.string(),
+        slug: v.optional(v.string()),
+        ogImage: v.optional(v.string()),
+        ogDescription: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
+        // slug 중복 체크
+        if (args.slug) {
+            const existing = await ctx.db
+                .query("campaigns")
+                .withIndex("by_slug", (q) => q.eq("slug", args.slug!))
+                .first();
+            if (existing) {
+                throw new Error("이미 사용 중인 단축 주소입니다.");
+            }
+        }
+
         const campaignId = await ctx.db.insert("campaigns", {
             title: args.title,
             blocks: args.blocks,
             status: args.status,
+            slug: args.slug,
+            ogImage: args.ogImage,
+            ogDescription: args.ogDescription,
             viewCount: 0,
         });
         return campaignId;
     },
 });
 
+// 캠페인 수정
 // 캠페인 수정
 export const update = mutation({
     args: {
@@ -28,9 +47,24 @@ export const update = mutation({
         blocks: v.optional(v.any()),
         status: v.optional(v.string()),
         thumbnailUrl: v.optional(v.string()),
+        slug: v.optional(v.string()),
+        ogImage: v.optional(v.string()),
+        ogDescription: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         const { id, ...fields } = args;
+
+        // slug 중복 체크 (자신 제외)
+        if (fields.slug) {
+            const existing = await ctx.db
+                .query("campaigns")
+                .withIndex("by_slug", (q) => q.eq("slug", fields.slug!))
+                .first();
+            if (existing && existing._id !== id) {
+                throw new Error("이미 사용 중인 단축 주소입니다.");
+            }
+        }
+
         await ctx.db.patch(id, fields);
     },
 });
@@ -56,6 +90,18 @@ export const get = query({
     args: { id: v.id("campaigns") },
     handler: async (ctx, args) => {
         return await ctx.db.get(args.id);
+    },
+});
+
+// 캠페인 상세 조회 (Slug용)
+export const getBySlug = query({
+    args: { slug: v.string() },
+    handler: async (ctx, args) => {
+        const campaign = await ctx.db
+            .query("campaigns")
+            .withIndex("by_slug", (q) => q.eq("slug", args.slug))
+            .first();
+        return campaign;
     },
 });
 

@@ -76,8 +76,11 @@ export default defineSchema({
         blocks: v.any(), // JSON Array of widgets: [{type: 'text', content: 'hello'}, ...]
         status: v.string(), // "draft" | "published"
         thumbnailUrl: v.optional(v.string()),
+        slug: v.optional(v.string()), // Short URL identifier
+        ogImage: v.optional(v.string()), // SNS Share Image
+        ogDescription: v.optional(v.string()), // SNS Share Description
         viewCount: v.number(),
-    }),
+    }).index("by_slug", ["slug"]),
 
     // 계약 관리
     contracts: defineTable({
