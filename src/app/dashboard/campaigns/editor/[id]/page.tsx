@@ -1390,6 +1390,10 @@ export default function CampaignEditorPage() {
                                         </div>
                                     </div>
                                     <div>
+                                        <label className="text-xs font-bold text-gray-400 mb-1 block">연결 링크 (Link URL)</label>
+                                        <input type="text" className="w-full p-2 border rounded-lg text-xs bg-gray-50" value={selectedBlock.content.link || ''} onChange={(e) => updateBlock(selectedBlock!.id, { content: { ...selectedBlock!.content, link: e.target.value } })} placeholder="https://..." />
+                                    </div>
+                                    <div>
                                         <label className="text-xs font-bold text-gray-400 mb-2 block">아이콘</label>
                                         <div className="grid grid-cols-6 gap-1 max-h-32 overflow-y-auto p-2 border rounded-lg bg-gray-50">
                                             <button onClick={() => updateBlock(selectedBlock!.id, { content: { ...selectedBlock!.content, iconName: '' } })} className="p-1 text-[10px] text-gray-400 border rounded">없음</button>
@@ -1438,6 +1442,10 @@ export default function CampaignEditorPage() {
                                                 <button key={opt.id} onClick={() => updateBlock(selectedBlock!.id, { content: { ...selectedBlock!.content, variant: opt.id } })} className={`flex-1 py-1.5 text-[10px] font-bold rounded ${selectedBlock!.content.variant === opt.id || (!selectedBlock!.content.variant && opt.id === 'horizontal') ? 'bg-white text-purple-600 shadow-sm border border-gray-200' : 'text-gray-400 hover:text-gray-600'}`}>{opt.label}</button>
                                             ))}
                                         </div>
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-400 mb-1 block">연결 링크 (Link URL)</label>
+                                        <input type="text" className="w-full p-2 border rounded-lg text-xs bg-gray-50" value={selectedBlock.content.link || ''} onChange={(e) => updateBlock(selectedBlock!.id, { content: { ...selectedBlock!.content, link: e.target.value } })} placeholder="https://..." />
                                     </div>
                                     <label className="text-xs font-bold text-gray-400 mb-1 block uppercase">단계 편집 (Steps)</label>
                                     <div className="space-y-3 bg-gray-50 p-3 rounded-lg border">
