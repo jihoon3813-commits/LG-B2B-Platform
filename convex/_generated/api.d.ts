@@ -9,6 +9,7 @@
  */
 
 import type * as campaignHistory from "../campaignHistory.js";
+import type * as campaignInquiries from "../campaignInquiries.js";
 import type * as campaigns from "../campaigns.js";
 import type * as contracts from "../contracts.js";
 import type * as crawler from "../crawler.js";
@@ -27,6 +28,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   campaignHistory: typeof campaignHistory;
+  campaignInquiries: typeof campaignInquiries;
   campaigns: typeof campaigns;
   contracts: typeof contracts;
   crawler: typeof crawler;

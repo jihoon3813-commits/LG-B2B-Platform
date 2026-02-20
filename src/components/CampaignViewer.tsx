@@ -1,9 +1,9 @@
 "use client";
 
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { useMemo } from "react";
-import { Circle, Check, Square, Activity, Award, BarChart3, Bell, Calendar, CheckCircle2, Clock, Cloud, Code, Database, FileText, Gift, Globe, Heart, HelpCircle, Info, Key, Laptop, Layers, LifeBuoy, Lightbulb, Lock, Mail, MapPin, MessageSquare, Monitor, Package, Phone, PieChart, Play, Shield, ShoppingCart, Smartphone, Star, Sun, Target, Trash2, User, Users, Zap, Smile } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Circle, Check, Square, Activity, Award, BarChart3, Bell, Calendar, CheckCircle2, Clock, Cloud, Code, Database, FileText, Gift, Globe, Heart, HelpCircle, Info, Key, Laptop, Layers, LifeBuoy, Lightbulb, Lock, Mail, MapPin, MessageSquare, Monitor, Package, Phone, PieChart, Play, Shield, ShoppingCart, Smartphone, Star, Sun, Target, Trash2, User, Users, Zap, Smile, Send } from "lucide-react";
 import { Id } from "../../convex/_generated/dataModel";
 
 const ICON_LIST = {
@@ -35,6 +35,126 @@ function getYouTubeId(url: string) {
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
     const match = url.match(regExp);
     return (match && match[2].length === 11) ? match[2] : null;
+}
+
+function InquiryForm({ block, campaignId }: { block: any, campaignId: Id<"campaigns"> }) {
+    const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
+    const [formData, setFormData] = useState<Record<string, string>>({});
+    const submitInquiry = useMutation(api.campaignInquiries.submit);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setStatus("submitting");
+        try {
+            await submitInquiry({
+                campaignId,
+                name: formData['성함'] || formData['이름'] || Object.values(formData)[0] || '익명',
+                phoneNumber: formData['연락처'] || formData['휴대폰'] || formData['전화번호'] || '',
+                company: formData['회사명'] || formData['소속'],
+                email: formData['이메일'],
+                memo: formData['상담내용'] || formData['문의사항'],
+                formData: formData
+            });
+            setStatus("success");
+            setFormData({});
+        } catch (err) {
+            console.error(err);
+            setStatus("error");
+        }
+    };
+
+    if (status === "success") {
+        return (
+            <div className="p-10 text-center animate-fade-in" style={{ backgroundColor: block.style.backgroundColor, borderRadius: block.style.borderRadius }}>
+                <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle2 className="w-8 h-8" />
+                </div>
+                <h3 className="text-xl font-bold mb-2">신청 완료!</h3>
+                <p className="text-gray-500 text-sm leading-relaxed">{block.content.successMessage}</p>
+                <button
+                    onClick={() => setStatus("idle")}
+                    className="mt-6 text-sm font-bold text-gray-400 hover:text-gray-600 underline"
+                >다시 작성하기</button>
+            </div>
+        );
+    }
+
+    const variant = block.content.variant || 'default';
+
+    return (
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5" style={{ backgroundColor: block.style.backgroundColor, padding: block.style.padding, borderRadius: block.style.borderRadius, boxShadow: block.style.boxShadow }}>
+            {block.content.formFields?.map((field: any, i: number) => {
+                const inputId = `field-${i}`;
+                const baseInputClass = "w-full transition-all outline-none ";
+                const variantClasses = {
+                    default: "p-3 border rounded-lg focus:ring-2 focus:ring-opacity-20 ",
+                    underline: "p-3 border-b border-t-0 border-l-0 border-r-0 rounded-none focus:border-b-2 ",
+                    minimal: "p-2 bg-gray-50 rounded focus:bg-white "
+                }[variant as 'default' | 'underline' | 'minimal'] || "p-3 border rounded-lg ";
+
+                const style = {
+                    borderColor: variant === 'underline' ? block.style.accentColor : undefined,
+                };
+
+                return (
+                    <div key={i} className="flex flex-col gap-1.5">
+                        <label htmlFor={inputId} className="text-xs font-black text-gray-500 ml-1">
+                            {field.label} {field.required && <span className="text-red-500">*</span>}
+                        </label>
+                        {field.type === 'textarea' ? (
+                            <textarea
+                                id={inputId}
+                                required={field.required}
+                                placeholder={field.placeholder}
+                                className={baseInputClass + variantClasses + " h-24"}
+                                value={formData[field.label] || ''}
+                                onChange={(e) => setFormData({ ...formData, [field.label]: e.target.value })}
+                            />
+                        ) : field.type === 'select' ? (
+                            <select
+                                id={inputId}
+                                required={field.required}
+                                className={baseInputClass + variantClasses}
+                                value={formData[field.label] || ''}
+                                onChange={(e) => setFormData({ ...formData, [field.label]: e.target.value })}
+                            >
+                                <option value="">선택해 주세요</option>
+                                {field.options?.map((opt: string) => (
+                                    <option key={opt} value={opt}>{opt}</option>
+                                ))}
+                            </select>
+                        ) : (
+                            <input
+                                id={inputId}
+                                type={field.type}
+                                required={field.required}
+                                placeholder={field.placeholder}
+                                className={baseInputClass + variantClasses}
+                                value={formData[field.label] || ''}
+                                onChange={(e) => setFormData({ ...formData, [field.label]: e.target.value })}
+                            />
+                        )}
+                    </div>
+                );
+            })}
+            <button
+                type="submit"
+                disabled={status === "submitting"}
+                className={`mt-2 w-full p-4 rounded-xl font-black text-white shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2 ${status === "submitting" ? "opacity-70" : "hover:brightness-110"}`}
+                style={{ backgroundColor: block.style.accentColor }}
+            >
+                {status === "submitting" ? (
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                    <>
+                        <Send className="w-4 h-4" />
+                        {block.content.submitButtonText}
+                    </>
+                )}
+            </button>
+            {status === "error" && <p className="text-center text-xs text-red-500 font-bold">오류가 발생했습니다. 다시 시도해 주세요.</p>}
+        </form>
+    );
 }
 
 interface CampaignViewerProps {
@@ -345,6 +465,11 @@ export default function CampaignViewer({ campaignId, slug }: CampaignViewerProps
                                                     </LinkWrapper>
                                                 );
                                             })()}
+                                            {block.type === 'inquiry' && campaignId && (
+                                                <div style={{ padding: '20px' }}>
+                                                    <InquiryForm block={block} campaignId={campaignId} />
+                                                </div>
+                                            )}
                                         </div>
                                     );
                                 })}

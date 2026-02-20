@@ -1,0 +1,70 @@
+import { mutation, query } from "./_generated/server";
+import { v } from "convex/values";
+
+// 상담 신청 등록
+export const submit = mutation({
+    args: {
+        campaignId: v.id("campaigns"),
+        name: v.string(),
+        phoneNumber: v.string(),
+        company: v.optional(v.string()),
+        email: v.optional(v.string()),
+        memo: v.optional(v.string()),
+        formData: v.optional(v.any()),
+    },
+    handler: async (ctx, args) => {
+        const campaign = await ctx.db.get(args.campaignId);
+        if (!campaign) throw new Error("캠페인을 찾을 수 없습니다.");
+
+        const inquiryId = await ctx.db.insert("campaign_inquiries", {
+            campaignId: args.campaignId,
+            campaignTitle: campaign.title,
+            name: args.name,
+            phoneNumber: args.phoneNumber,
+            company: args.company,
+            email: args.email,
+            memo: args.memo,
+            formData: args.formData,
+            status: "대기",
+            createdAt: Date.now(),
+        });
+
+        // 상담 신청이 들어오면 고객 DB에도 자동으로 추가/업데이트 시도할 수 있음
+        // 여기서는 일단 인콰이어리 저장에 집중
+
+        return inquiryId;
+    },
+});
+
+// 상담 신청 내역 목록
+export const list = query({
+    args: { campaignId: v.optional(v.id("campaigns")) },
+    handler: async (ctx, args) => {
+        const q = ctx.db.query("campaign_inquiries");
+        if (args.campaignId) {
+            return await q.withIndex("by_campaign", (q) => q.eq("campaignId", args.campaignId!))
+                .order("desc")
+                .collect();
+        }
+        return await q.withIndex("by_createdAt").order("desc").collect();
+    },
+});
+
+// 상태 업데이트
+export const updateStatus = mutation({
+    args: {
+        id: v.id("campaign_inquiries"),
+        status: v.string(),
+    },
+    handler: async (ctx, args) => {
+        await ctx.db.patch(args.id, { status: args.status });
+    },
+});
+
+// 삭제
+export const remove = mutation({
+    args: { id: v.id("campaign_inquiries") },
+    handler: async (ctx, args) => {
+        await ctx.db.delete(args.id);
+    },
+});

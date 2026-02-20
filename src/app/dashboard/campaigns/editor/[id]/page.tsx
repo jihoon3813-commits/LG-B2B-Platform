@@ -16,7 +16,7 @@ const ICON_LIST = {
 // Types
 interface Block {
     id: string;
-    type: 'text' | 'image' | 'video' | 'button' | 'spacer' | 'table' | 'card' | 'icon' | 'stats' | 'steps';
+    type: 'text' | 'image' | 'video' | 'button' | 'spacer' | 'table' | 'card' | 'icon' | 'stats' | 'steps' | 'inquiry';
     content: {
         text?: string;
         url?: string;
@@ -35,6 +35,10 @@ interface Block {
         label?: string;     // Stats label
         items?: { title: string, desc: string }[]; // Steps items
         variant?: string;   // For multiple styles
+        // Inquiry form fields
+        formFields?: { type: string, label: string, required: boolean, placeholder?: string, options?: string[] }[];
+        submitButtonText?: string;
+        successMessage?: string;
     };
     style: {
         fontSize?: string;
@@ -81,6 +85,7 @@ const WIDGETS = [
     { type: 'icon', label: '아이콘', icon: Smile },
     { type: 'stats', label: '인포그래픽', icon: BarChart3 },
     { type: 'steps', label: '다이어그램', icon: ListOrdered },
+    { type: 'inquiry', label: '상담신청 폼', icon: FileText },
     { type: 'spacer', label: '여백', icon: MoveVertical },
 ];
 
@@ -181,6 +186,16 @@ export default function CampaignEditorPage() {
             case 'icon': return { iconName: 'Smile' };
             case 'stats': return { value: '88%', label: '고객 만족도', iconName: 'Activity', variant: 'default' };
             case 'steps': return { items: [{ title: 'STEP 01', desc: '상담 신청' }, { title: 'STEP 02', desc: '해피콜 진행' }, { title: 'STEP 03', desc: '설치 완료' }], variant: 'horizontal' };
+            case 'inquiry': return {
+                formFields: [
+                    { type: 'text', label: '성함', required: true, placeholder: '이름을 입력해 주세요' },
+                    { type: 'tel', label: '연락처', required: true, placeholder: '010-0000-0000' },
+                    { type: 'textarea', label: '상담 내용', required: false, placeholder: '궁금하신 내용을 입력해 주세요' }
+                ],
+                submitButtonText: '상담 신청하기',
+                successMessage: '상담 신청이 완료되었습니다. 곧 연락드리겠습니다.',
+                variant: 'default'
+            };
             default: return {};
         }
     };
@@ -194,6 +209,7 @@ export default function CampaignEditorPage() {
             case 'icon': return { fontSize: '48px', color: '#2563eb', textAlign: 'center', padding: '20px' };
             case 'stats': return { fontSize: '32px', color: '#2563eb', textAlign: 'center', backgroundColor: '#f8fafc', padding: '30px', borderRadius: '16px' };
             case 'steps': return { fontSize: '14px', color: '#64748b', textAlign: 'center', accentColor: '#2563eb', padding: '20px' };
+            case 'inquiry': return { backgroundColor: '#ffffff', color: '#000000', accentColor: '#2563eb', padding: '30px', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' };
             case 'spacer': return { height: '20px' };
             default: return {};
         }
@@ -756,6 +772,27 @@ export default function CampaignEditorPage() {
                                                         </div>
                                                     );
                                                 })()}
+                                                {block.type === 'inquiry' && (
+                                                    <div style={{ padding: '20px' }}>
+                                                        <div className="bg-white border rounded-xl p-6 shadow-sm pointer-events-none opacity-80 border-dashed border-purple-200">
+                                                            <div className="flex items-center gap-2 mb-6 border-b pb-2">
+                                                                <FileText className="w-4 h-4 text-purple-500" />
+                                                                <span className="text-xs font-bold text-purple-500 uppercase">Consultation Inquiry Form Preview</span>
+                                                            </div>
+                                                            <div className="space-y-4">
+                                                                {block.content.formFields?.map((field: any, i: number) => (
+                                                                    <div key={i} className="space-y-1">
+                                                                        <div className="w-20 h-2 bg-gray-100 rounded"></div>
+                                                                        <div className="w-full h-10 bg-gray-50 border rounded-lg"></div>
+                                                                    </div>
+                                                                ))}
+                                                                <div className="w-full h-12 bg-blue-500 rounded-xl mt-4 flex items-center justify-center">
+                                                                    <div className="w-24 h-3 bg-white/30 rounded"></div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
                                                 {block.type === 'spacer' && <div style={{ height: block.style.height }}></div>}
                                             </div>
                                         </div>
@@ -1491,6 +1528,104 @@ export default function CampaignEditorPage() {
                                 </div>
                             )}
 
+                            {selectedBlock.type === 'inquiry' && (
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-400 mb-2 block">입력폼 스타일 (아임웹 스타일)</label>
+                                        <div className="flex gap-1 bg-gray-50 p-1 rounded-lg border">
+                                            {[
+                                                { id: 'default', label: '기본형' },
+                                                { id: 'underline', label: '하단선 고정' },
+                                                { id: 'minimal', label: '미니멀' }
+                                            ].map(opt => (
+                                                <button key={opt.id} onClick={() => updateBlock(selectedBlock!.id, { content: { ...selectedBlock!.content, variant: opt.id } })} className={`flex-1 py-1.5 text-[10px] font-bold rounded ${selectedBlock!.content.variant === opt.id || (!selectedBlock!.content.variant && opt.id === 'default') ? 'bg-white text-purple-600 shadow-sm border border-gray-200' : 'text-gray-400 hover:text-gray-600'}`}>{opt.label}</button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex gap-2">
+                                        <div className="flex-1">
+                                            <label className="text-xs font-bold text-gray-400 mb-1 block">버튼 텍스트</label>
+                                            <input type="text" className="w-full p-2 border rounded-lg text-xs bg-gray-50" value={selectedBlock.content.submitButtonText} onChange={(e) => updateBlock(selectedBlock!.id, { content: { ...selectedBlock!.content, submitButtonText: e.target.value } })} />
+                                        </div>
+                                        <div className="flex-1">
+                                            <label className="text-xs font-bold text-gray-400 mb-1 block">강조색</label>
+                                            <input type="color" className="w-full h-8 border rounded-lg cursor-pointer" value={selectedBlock.style.accentColor || "#2563eb"} onChange={(e) => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, accentColor: e.target.value } })} />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-400 mb-1 block">성공 메시지</label>
+                                        <input type="text" className="w-full p-2 border rounded-lg text-xs bg-gray-50" value={selectedBlock.content.successMessage} onChange={(e) => updateBlock(selectedBlock!.id, { content: { ...selectedBlock!.content, successMessage: e.target.value } })} />
+                                    </div>
+
+                                    <label className="text-xs font-bold text-gray-400 mb-1 block uppercase mt-4">입력 항목 관리 (Fields)</label>
+                                    <div className="space-y-3 bg-gray-50 p-3 rounded-lg border">
+                                        {selectedBlock.content.formFields?.map((field, i) => (
+                                            <div key={i} className="space-y-2 pb-3 border-b border-gray-200 last:border-0 relative group">
+                                                <button
+                                                    onClick={() => {
+                                                        const formFields = selectedBlock!.content.formFields!.filter((_, idx) => idx !== i);
+                                                        updateBlock(selectedBlock!.id, { content: { ...selectedBlock!.content, formFields } });
+                                                    }}
+                                                    className="absolute -right-1 -top-1 w-5 h-5 bg-red-50 text-red-400 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity border border-red-100"
+                                                >✕</button>
+                                                <div className="flex gap-2">
+                                                    <select className="flex-1 p-1.5 border rounded text-[10px]" value={field.type} onChange={(e) => {
+                                                        const fields = [...selectedBlock!.content.formFields!];
+                                                        fields[i].type = e.target.value;
+                                                        updateBlock(selectedBlock!.id, { content: { ...selectedBlock!.content, formFields: fields } });
+                                                    }}>
+                                                        <option value="text">텍스트 (단문)</option>
+                                                        <option value="tel">전화번호</option>
+                                                        <option value="email">이메일</option>
+                                                        <option value="textarea">상담내용 (장문)</option>
+                                                        <option value="select">목록선택 (Dropdown)</option>
+                                                    </select>
+                                                    <div className="flex items-center gap-1">
+                                                        <input type="checkbox" id={`req-${i}`} checked={field.required} onChange={(e) => {
+                                                            const fields = [...selectedBlock!.content.formFields!];
+                                                            fields[i].required = e.target.checked;
+                                                            updateBlock(selectedBlock!.id, { content: { ...selectedBlock!.content, formFields: fields } });
+                                                        }} />
+                                                        <label htmlFor={`req-${i}`} className="text-[10px] text-gray-500">필수</label>
+                                                    </div>
+                                                </div>
+                                                <input type="text" className="w-full p-2 border rounded text-xs" value={field.label} onChange={(e) => {
+                                                    const fields = [...selectedBlock!.content.formFields!];
+                                                    fields[i].label = e.target.value;
+                                                    updateBlock(selectedBlock!.id, { content: { ...selectedBlock!.content, formFields: fields } });
+                                                }} placeholder="항목 이름 (예: 성함)" />
+                                                {field.type === 'select' && (
+                                                    <input type="text" className="w-full p-2 border rounded text-xs" value={field.options?.join(', ') || ''} onChange={(e) => {
+                                                        const fields = [...selectedBlock!.content.formFields!];
+                                                        fields[i].options = e.target.value.split(',').map(s => s.trim());
+                                                        updateBlock(selectedBlock!.id, { content: { ...selectedBlock!.content, formFields: fields } });
+                                                    }} placeholder="선택지 (쉼표로 구분: 항목1, 항목2)" />
+                                                )}
+                                            </div>
+                                        ))}
+                                        <button
+                                            onClick={() => {
+                                                const fields = [...(selectedBlock!.content.formFields || []), { type: 'text', label: '새 항목', required: false, placeholder: '입력해 주세요' }];
+                                                updateBlock(selectedBlock!.id, { content: { ...selectedBlock!.content, formFields: fields } });
+                                            }}
+                                            className="w-full py-2 border border-dashed border-gray-300 rounded text-[10px] text-gray-400 hover:bg-white hover:text-purple-500 hover:border-purple-200 transition-all"
+                                        >+ 입력 항목 추가</button>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <label className="text-xs font-bold text-gray-400 mb-1 block">배경색</label>
+                                            <input type="color" className="w-full h-8 border rounded-lg cursor-pointer" value={selectedBlock.style.backgroundColor || "#ffffff"} onChange={(e) => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, backgroundColor: e.target.value } })} />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-bold text-gray-400 mb-1 block">곡률</label>
+                                            <input type="text" className="w-full p-2 border rounded-lg text-xs bg-gray-50" value={selectedBlock.style.borderRadius} onChange={(e) => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, borderRadius: e.target.value } })} />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                             {selectedBlock.type === 'video' && (
                                 <div className="space-y-4">
                                     <div>
@@ -1527,7 +1662,7 @@ export default function CampaignEditorPage() {
                         </div>
                     )}
                 </div>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 }

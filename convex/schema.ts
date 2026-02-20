@@ -131,4 +131,20 @@ export default defineSchema({
         googleCx: v.optional(v.string()),
         updatedAt: v.optional(v.number()),
     }),
+
+    // 캠페인 상담 신청 내역
+    campaign_inquiries: defineTable({
+        campaignId: v.id("campaigns"),
+        campaignTitle: v.string(), // 캠페인 제목 백업
+        name: v.string(),
+        phoneNumber: v.string(),
+        company: v.optional(v.string()),
+        email: v.optional(v.string()),
+        memo: v.optional(v.string()),
+        formData: v.optional(v.any()), // JSON: 기타 아임웹 스타일 추가 필드 내역들
+        status: v.string(), // 대기, 진행중, 완료, 거절
+        createdAt: v.number(),
+    })
+        .index("by_campaign", ["campaignId"])
+        .index("by_createdAt", ["createdAt"]),
 });

@@ -10,7 +10,8 @@ import {
     Package,
     Settings,
     LogOut,
-    Menu
+    Menu,
+    MessageSquare
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useQuery } from "convex/react";
@@ -21,6 +22,7 @@ const menuItems = [
     { name: "캠페인 관리", href: "/dashboard/campaigns", icon: Megaphone },
     { name: "고객 관리", href: "/dashboard/customers", icon: Users },
     { name: "계약 관리", href: "/dashboard/contracts", icon: FileText },
+    { name: "상담 신청 내역", href: "/dashboard/campaigns/inquiries", icon: MessageSquare },
     { name: "제품 관리", href: "/dashboard/products", icon: Package },
     { name: "시스템 설정", href: "/dashboard/settings", icon: Settings },
 ];
