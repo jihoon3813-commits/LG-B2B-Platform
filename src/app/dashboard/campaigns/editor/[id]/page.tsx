@@ -417,8 +417,8 @@ export default function CampaignEditorPage() {
                 </div>
 
                 {/* Canvas */}
-                <div className="flex-1 bg-gray-100 flex justify-center items-start overflow-auto p-8" onClick={() => { setSelectedId(null); setSelectedType(null); }}>
-                    <div className="w-[480px] h-[750px] max-h-full my-auto bg-white shadow-2xl rounded-[40px] overflow-hidden border-[12px] border-gray-900 relative flex flex-col">
+                <div className="flex-1 bg-gray-100 flex justify-center items-start overflow-hidden p-8" onClick={() => { setSelectedId(null); setSelectedType(null); }}>
+                    <div className="w-[480px] h-full bg-white shadow-2xl rounded-[40px] overflow-hidden border-[12px] border-gray-900 relative flex flex-col">
                         <div className="h-6 bg-gray-900 flex justify-center items-center"><div className="w-16 h-1 bg-gray-700 rounded-full"></div></div>
 
                         <div className="flex-1 overflow-y-auto bg-white relative pb-10">
