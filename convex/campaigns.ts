@@ -9,6 +9,7 @@ export const create = mutation({
         title: v.string(),
         blocks: v.any(), // JSON
         status: v.string(),
+        thumbnailUrl: v.optional(v.string()),
         slug: v.optional(v.string()),
         ogImage: v.optional(v.string()),
         ogDescription: v.optional(v.string()),
@@ -29,6 +30,7 @@ export const create = mutation({
             title: args.title,
             blocks: args.blocks,
             status: args.status,
+            thumbnailUrl: args.thumbnailUrl,
             slug: args.slug,
             ogImage: args.ogImage,
             ogDescription: args.ogDescription,

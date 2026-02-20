@@ -38,28 +38,33 @@ export const list = query({
                 const customer = await ctx.db.get(contract.customerId);
                 const product = contract.productId ? await ctx.db.get(contract.productId) : null;
 
-                const cust = customer as any;
-                const prod = product as any;
-
                 return {
                     ...contract,
-                    customer: customer ? { ...cust } : null,
-                    product: product ? { ...prod } : null,
+                    customer,
+                    product,
                 };
             })
         );
 
         if (args.search) {
             const search = args.search.toLowerCase();
-            result = result.filter(r =>
-                (r.customerName && r.customerName.toLowerCase().includes(search)) ||
-                (r.customerPhone && r.customerPhone.includes(search)) ||
-                (r.productName && r.productName.toLowerCase().includes(search)) ||
-                (r.modelName && r.modelName.toLowerCase().includes(search)) ||
-                (r.customer?.name && r.customer.name.toLowerCase().includes(search)) ||
-                (r.customer?.phoneNumber && r.customer.phoneNumber.includes(search)) ||
-                (r.memo && r.memo.toLowerCase().includes(search))
-            );
+            result = result.filter(r => {
+                const cName = r.customerName?.toLowerCase() || "";
+                const cPhone = r.customerPhone || "";
+                const pName = r.productName?.toLowerCase() || "";
+                const mName = r.modelName?.toLowerCase() || "";
+                const custName = r.customer?.name?.toLowerCase() || "";
+                const custPhone = r.customer?.phoneNumber || "";
+                const memo = r.memo?.toLowerCase() || "";
+
+                return cName.includes(search) ||
+                    cPhone.includes(search) ||
+                    pName.includes(search) ||
+                    mName.includes(search) ||
+                    custName.includes(search) ||
+                    custPhone.includes(search) ||
+                    memo.includes(search);
+            });
         }
 
         return result.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));

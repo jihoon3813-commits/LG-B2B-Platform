@@ -5,6 +5,18 @@ import { v } from "convex/values";
 import axios from "axios";
 import * as cheerio from "cheerio";
 
+interface ProductInfo {
+    modelName: string;
+    name: string;
+    price: number;
+    thumbnailUrl: string;
+    detailImageUrl: string;
+    category: string;
+    description: string;
+    fetchedAt: number;
+    source: string;
+}
+
 export const fetchProductInfo = action({
     args: {
         modelName: v.string(),
@@ -33,7 +45,7 @@ export const fetchProductInfo = action({
                 const safeModelName = args.modelName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                 const regex = new RegExp(safeModelName, "gi");
                 cleaned = cleaned.replace(regex, "").trim();
-            } catch (e) { }
+            } catch { }
 
             return cleaned.replace(/^[\s\-_]+|[\s\-_]+$/g, "");
         };
@@ -54,7 +66,7 @@ export const fetchProductInfo = action({
 
         try {
             log(`[Start] Searching for: ${args.modelName}`);
-            let productInfo: any = null;
+            let productInfo: ProductInfo | null = null;
 
             // 1. Google API
             if (args.googleApiKey && args.googleCx) {
@@ -62,9 +74,11 @@ export const fetchProductInfo = action({
                 // ... (지면 관계상 생략하지 않고 전체 작성)
                 try {
                     const googleUrl = `https://www.googleapis.com/customsearch/v1`;
-                    const { data: googleRes } = await axios.get(googleUrl, {
-                        params: { key: args.googleApiKey, cx: args.googleCx, q: args.modelName, num: 1 }
-                    });
+                    const params: Record<string, unknown> = { q: args.modelName, num: 1 };
+                    if (args.googleApiKey) params.key = args.googleApiKey;
+                    if (args.googleCx) params.cx = args.googleCx;
+
+                    const { data: googleRes } = await axios.get(googleUrl, { params });
 
                     if (googleRes.items && googleRes.items.length > 0) {
                         const item = googleRes.items[0];
@@ -73,10 +87,10 @@ export const fetchProductInfo = action({
                         let detailImageUrl = "";
 
                         // 이미지
-                        if (item.pagemap?.cse_image?.length > 0) thumbnailUrl = item.pagemap.cse_image[0].src;
-                        if (item.pagemap?.metatags) {
-                            const ogImage = item.pagemap.metatags.find((t: any) => t['og:image']);
-                            if (ogImage) detailImageUrl = ogImage['og:image'];
+                        if (item.pagemap?.cse_image && item.pagemap.cse_image.length > 0) thumbnailUrl = item.pagemap.cse_image[0].src;
+                        if (item.pagemap?.metatags && Array.isArray(item.pagemap.metatags)) {
+                            const ogImage = item.pagemap.metatags.find((t: Record<string, unknown>) => t['og:image']);
+                            if (ogImage) detailImageUrl = String(ogImage['og:image'] || "");
                         }
                         if (!detailImageUrl) detailImageUrl = thumbnailUrl;
 
@@ -84,7 +98,7 @@ export const fetchProductInfo = action({
                         thumbnailUrl = getHighResImageUrl(thumbnailUrl);
                         detailImageUrl = getHighResImageUrl(detailImageUrl);
 
-                        if (item.pagemap?.offer?.length > 0) price = Number(item.pagemap.offer[0].price || 0);
+                        if (item.pagemap?.offer && item.pagemap.offer.length > 0) price = Number(item.pagemap.offer[0].price || 0);
 
                         if (thumbnailUrl) {
                             productInfo = {
@@ -100,7 +114,7 @@ export const fetchProductInfo = action({
                             };
                         }
                     }
-                } catch (e: any) {
+                } catch {
                     log(`[Google API] Skipped.`);
                 }
             }
@@ -143,8 +157,9 @@ export const fetchProductInfo = action({
                             log(`[Danawa] Success: ${name}`);
                         }
                     }
-                } catch (e: any) {
-                    log(`[Danawa] Error: ${e.message}`);
+                } catch (e: unknown) {
+                    const msg = e instanceof Error ? e.message : String(e);
+                    log(`[Danawa] Error: ${msg}`);
                 }
             }
 
@@ -172,7 +187,7 @@ export const fetchProductInfo = action({
                             source: "DuckDuckGo"
                         };
                     }
-                } catch (e) { }
+                } catch { }
             }
 
             // 네이버 쇼핑 이미지 보완
@@ -185,23 +200,33 @@ export const fetchProductInfo = action({
                     const $n = cheerio.load(naverHtml);
                     const scriptData = $n("#__NEXT_DATA__").html();
                     if (scriptData) {
-                        const jsonData = JSON.parse(scriptData);
-                        const item = jsonData?.props?.pageProps?.initialState?.products?.list?.[0]?.item;
-                        if (item?.imageUrl) {
-                            const hqImage = getHighResImageUrl(item.imageUrl);
-                            productInfo.thumbnailUrl = hqImage;
-                            productInfo.detailImageUrl = hqImage;
-                            productInfo.source += " + Naver";
+                        try {
+                            const jsonData = JSON.parse(scriptData);
+                            const item = jsonData?.props?.pageProps?.initialState?.products?.list?.[0]?.item;
+                            if (item?.imageUrl) {
+                                const hqImage = getHighResImageUrl(item.imageUrl);
+                                if (productInfo) {
+                                    productInfo.thumbnailUrl = hqImage;
+                                    productInfo.detailImageUrl = hqImage;
+                                    productInfo.source = (productInfo.source || "") + " + Naver";
+                                }
+                            }
+                        } catch {
+                            log(`[Naver Shopping] JSON Parse Error`);
                         }
                     }
-                } catch (e) { }
+                } catch (e: unknown) {
+                    const msg = e instanceof Error ? e.message : String(e);
+                    log(`[Naver Shopping] Error: ${msg}`);
+                }
             }
 
             if (productInfo) return productInfo;
             return { error: "Not Found", logs };
 
-        } catch (error: any) {
-            log(`[Critical] ${error.message}`);
+        } catch (error: unknown) {
+            const msg = error instanceof Error ? error.message : String(error);
+            log(`[Critical] ${msg}`);
             return { error: "Critical Error", logs };
         }
     },

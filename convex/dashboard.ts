@@ -1,5 +1,6 @@
 import { query } from "./_generated/server";
 import { v } from "convex/values";
+import type { QueryCtx } from "./_generated/server";
 
 export const getStats = query({
     args: {},
@@ -88,7 +89,7 @@ function formatTimeAgo(timestamp: number) {
     return "방금 전";
 }
 
-async function getMonthlySales(ctx: any) {
+async function getMonthlySales(ctx: QueryCtx) {
     const now = new Date();
     const months = [];
     for (let i = 5; i >= 0; i--) {
@@ -105,12 +106,12 @@ async function getMonthlySales(ctx: any) {
 
     months.forEach(month => {
         month.total = contracts
-            .filter((c: any) =>
+            .filter((c) =>
                 (c.status === "배송완료" || c.status === "발주완료") &&
                 (c.createdAt || c._creationTime) >= month.start &&
                 (c.createdAt || c._creationTime) <= month.end
             )
-            .reduce((sum: number, c: any) => sum + (c.amount || 0), 0);
+            .reduce((sum, c) => sum + (c.amount || 0), 0);
     });
 
     return months.map(m => ({ name: m.name, value: m.total }));
