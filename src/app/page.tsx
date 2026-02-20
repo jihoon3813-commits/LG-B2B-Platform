@@ -21,7 +21,7 @@ export default function LoginPage() {
 
     try {
       // API 호출
-      // @ts-ignore (타입 추론이 늦을 수 있음)
+      // @ts-expect-error (타입 추론이 늦을 수 있음)
       const result = await loginMutation({ email, password });
 
       if (result && result.success && result.user) {
@@ -34,9 +34,10 @@ export default function LoginPage() {
         // 로그인 실패
         setErrorMsg(result?.message || "Login failed. Please check your credentials.");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setErrorMsg("Connection error. Please try again.");
+      const msg = err instanceof Error ? err.message : "Connection error. Please try again.";
+      setErrorMsg(msg);
     } finally {
       setIsLoading(false);
     }
@@ -132,39 +133,6 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Animation Styles */}
-      <style jsx global>{`
-        @keyframes blob {
-          0% { transform: translate(0px, 0px) scale(1); }
-          33% { transform: translate(30px, -50px) scale(1.1); }
-          66% { transform: translate(-20px, 20px) scale(0.9); }
-          100% { transform: translate(0px, 0px) scale(1); }
-        }
-        .animate-blob {
-          animation: blob 7s infinite;
-        }
-        .animation-delay-2000 {
-          animation-delay: 2s;
-        }
-        .animation-delay-4000 {
-          animation-delay: 4s;
-        }
-        @keyframes fade-in-up {
-          0% { opacity: 0; transform: translateY(20px); }
-          100% { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in-up {
-          animation: fade-in-up 0.8s ease-out forwards;
-        }
-        @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-          20%, 40%, 60%, 80% { transform: translateX(5px); }
-        }
-        .animate-shake {
-          animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
-        }
-      `}</style>
     </main>
   );
 }

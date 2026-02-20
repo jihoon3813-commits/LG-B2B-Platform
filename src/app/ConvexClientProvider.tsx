@@ -3,8 +3,8 @@
 import { ConvexProvider, ConvexReactClient } from "convex/react";
 import { ReactNode } from "react";
 
-const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
-const convex = new ConvexReactClient(convexUrl || "http://localhost:3000"); // Fallback for build time
+const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL || "https://dummy.convex.cloud";
+const convex = new ConvexReactClient(convexUrl);
 
 export default function ConvexClientProvider({
   children,
