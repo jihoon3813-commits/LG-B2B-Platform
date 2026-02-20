@@ -3,8 +3,12 @@
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useMemo } from "react";
-import { Circle, Check, Square } from "lucide-react";
+import { Circle, Check, Square, Activity, Award, BarChart3, Bell, Calendar, CheckCircle2, Clock, Cloud, Code, Database, FileText, Gift, Globe, Heart, HelpCircle, Info, Key, Laptop, Layers, LifeBuoy, Lightbulb, Lock, Mail, MapPin, MessageSquare, Monitor, Package, Phone, PieChart, Play, Shield, ShoppingCart, Smartphone, Star, Sun, Target, Trash2, User, Users, Zap, Smile } from "lucide-react";
 import { Id } from "../../convex/_generated/dataModel";
+
+const ICON_LIST = {
+    Smile, Activity, Award, BarChart3, Bell, Calendar, CheckCircle2, Clock, Cloud, Code, Database, FileText, Gift, Globe, Heart, HelpCircle, Info, Key, Laptop, Layers, LifeBuoy, Lightbulb, Lock, Mail, MapPin, MessageSquare, Monitor, Package, Phone, PieChart, Play, Shield, ShoppingCart, Smartphone, Star, Sun, Target, Trash2, User, Users, Zap
+};
 
 function StorageImage({ storageId, alt, style, className }: { storageId: string, alt?: string, style?: any, className?: string }) {
     const url = useQuery(api.campaigns.getFileUrl, { storageId });
@@ -250,6 +254,93 @@ export default function CampaignViewer({ campaignId, slug }: CampaignViewerProps
                                                     </div>
                                                 </div>
                                             )}
+                                            {block.type === 'icon' && (
+                                                <LinkWrapper>
+                                                    <div style={{ padding: block.style.padding, textAlign: block.style.textAlign || 'center' }}>
+                                                        {(() => {
+                                                            const IconComp = (ICON_LIST as any)[block.content.iconName || 'Smile'];
+                                                            return IconComp ? <IconComp style={{ fontSize: block.style.fontSize, color: block.style.color, width: block.style.fontSize, height: block.style.fontSize, display: 'inline-block' }} /> : null;
+                                                        })()}
+                                                    </div>
+                                                </LinkWrapper>
+                                            )}
+                                            {block.type === 'stats' && (() => {
+                                                const variant = block.content.variant || 'default';
+                                                const align = block.style.textAlign || 'center';
+                                                const IconComp = block.content.iconName && (ICON_LIST as any)[block.content.iconName];
+
+                                                return (
+                                                    <div style={{ padding: block.style.padding }}>
+                                                        {variant === 'default' && (
+                                                            <div style={{ backgroundColor: block.style.backgroundColor, borderRadius: block.style.borderRadius, padding: '30px', textAlign: align as any }}>
+                                                                {IconComp && <div className="mb-3"><IconComp style={{ color: block.style.color, width: '40px', height: '40px', margin: align === 'center' ? '0 auto' : align === 'right' ? '0 0 0 auto' : '0' }} /></div>}
+                                                                <div style={{ color: block.style.color, fontSize: block.style.fontSize, fontWeight: '900', lineHeight: 1.1 }}>{block.content.value}</div>
+                                                                <div style={{ color: '#64748b', fontSize: '15px', marginTop: '8px', fontWeight: 'bold' }}>{block.content.label}</div>
+                                                            </div>
+                                                        )}
+                                                        {variant === 'outline' && (
+                                                            <div style={{ backgroundColor: 'transparent', border: `2px solid ${block.style.color}`, borderRadius: block.style.borderRadius, padding: '30px', textAlign: align as any }}>
+                                                                {IconComp && <div className="mb-3"><IconComp style={{ color: block.style.color, width: '40px', height: '40px', margin: align === 'center' ? '0 auto' : align === 'right' ? '0 0 0 auto' : '0' }} /></div>}
+                                                                <div style={{ color: block.style.color, fontSize: block.style.fontSize, fontWeight: '900', lineHeight: 1.1 }}>{block.content.value}</div>
+                                                                <div style={{ color: '#64748b', fontSize: '15px', marginTop: '8px', fontWeight: 'bold' }}>{block.content.label}</div>
+                                                            </div>
+                                                        )}
+                                                        {variant === 'row' && (
+                                                            <div style={{ backgroundColor: block.style.backgroundColor, borderRadius: block.style.borderRadius, padding: '20px 30px', display: 'flex', alignItems: 'center', justifyContent: align === 'center' ? 'center' : align === 'right' ? 'flex-end' : 'flex-start', gap: '20px' }}>
+                                                                {IconComp && <div className="flex-shrink-0"><IconComp style={{ color: block.style.color, width: '48px', height: '48px' }} /></div>}
+                                                                <div style={{ textAlign: 'left' }}>
+                                                                    <div style={{ color: '#64748b', fontSize: '14px', marginBottom: '4px', fontWeight: 'bold' }}>{block.content.label}</div>
+                                                                    <div style={{ color: block.style.color, fontSize: block.style.fontSize, fontWeight: '900', lineHeight: 1 }}>{block.content.value}</div>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })()}
+                                            {block.type === 'steps' && (() => {
+                                                const variant = block.content.variant || 'horizontal';
+
+                                                return (
+                                                    <div style={{ padding: block.style.padding }}>
+                                                        {variant === 'horizontal' && (
+                                                            <div className="flex justify-between items-start">
+                                                                {block.content.items?.map((item: any, i: number) => (
+                                                                    <div key={i} className="flex-1 flex flex-col items-center relative">
+                                                                        {i < (block.content.items?.length || 0) - 1 && (
+                                                                            <div className="absolute top-5 left-1/2 w-full h-[2px]" style={{ backgroundColor: '#e2e8f0', zIndex: 0 }}></div>
+                                                                        )}
+                                                                        <div className="w-10 h-10 rounded-full flex items-center justify-center relative z-10" style={{ backgroundColor: block.style.accentColor, color: '#fff', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+                                                                            <span className="text-xs font-bold">{i + 1}</span>
+                                                                        </div>
+                                                                        <div className="mt-3 text-center">
+                                                                            <div style={{ fontSize: '13px', fontWeight: '900', color: block.style.accentColor }}>{item.title}</div>
+                                                                            <div style={{ fontSize: block.style.fontSize, color: block.style.color, marginTop: '4px', lineHeight: 1.4 }}>{item.desc}</div>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                        {variant === 'vertical' && (
+                                                            <div className="flex flex-col gap-6 pl-4">
+                                                                {block.content.items?.map((item: any, i: number) => (
+                                                                    <div key={i} className="flex items-start relative pb-6 last:pb-0 border-b border-dashed border-gray-100 last:border-0">
+                                                                        {i < (block.content.items?.length || 0) - 1 && (
+                                                                            <div className="absolute top-10 left-5 w-[2px] h-[calc(100%-40px)]" style={{ backgroundColor: '#e2e8f0', zIndex: 0 }}></div>
+                                                                        )}
+                                                                        <div className="w-10 h-10 rounded-full flex items-center justify-center relative z-10 flex-shrink-0" style={{ backgroundColor: block.style.accentColor, color: '#fff', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+                                                                            <span className="text-xs font-bold">{i + 1}</span>
+                                                                        </div>
+                                                                        <div className="ml-5 pt-1">
+                                                                            <div style={{ fontSize: '15px', fontWeight: '900', color: block.style.accentColor }}>{item.title}</div>
+                                                                            <div style={{ fontSize: block.style.fontSize, color: block.style.color, marginTop: '6px', lineHeight: 1.5 }}>{item.desc}</div>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })()}
                                         </div>
                                     );
                                 })}

@@ -4,15 +4,19 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../../../convex/_generated/api";
 import { useState, useEffect, useCallback } from "react";
 import {
-    Type, Image as ImageIcon, Video, MoveVertical, Save, ExternalLink, ChevronLeft, MousePointer2, Pencil, Bold, Link as LinkIcon, AlignLeft, AlignCenter, AlignRight, Layout, ImagePlus, Table as TableIcon, CreditCard, Check, Circle, Square, Settings
+    Type, Image as ImageIcon, Video, MoveVertical, Save, ExternalLink, ChevronLeft, MousePointer2, Pencil, Bold, Link as LinkIcon, AlignLeft, AlignCenter, AlignRight, Layout, ImagePlus, Table as TableIcon, CreditCard, Check, Circle, Square, Settings, Smile, BarChart3, ListOrdered, Activity, Award, Bell, Calendar, CheckCircle2, Clock, Cloud, Code, Database, FileText, Gift, Globe, Heart, HelpCircle, Info, Key, Laptop, Layers, LifeBuoy, Lightbulb, Lock, Mail, MapPin, MessageSquare, Monitor, Package, Phone, PieChart, Play, Shield, ShoppingCart, Smartphone, Star, Sun, Target, Trash2, User, Users, Zap
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { Id } from "../../../../../../convex/_generated/dataModel";
 
+const ICON_LIST = {
+    Smile, Activity, Award, BarChart3, Bell, Calendar, CheckCircle2, Clock, Cloud, Code, Database, FileText, Gift, Globe, Heart, HelpCircle, Info, Key, Laptop, Layers, LifeBuoy, Lightbulb, Lock, Mail, MapPin, MessageSquare, Monitor, Package, Phone, PieChart, Play, Shield, ShoppingCart, Smartphone, Star, Sun, Target, Trash2, User, Users, Zap
+};
+
 // Types
 interface Block {
     id: string;
-    type: 'text' | 'image' | 'video' | 'button' | 'spacer' | 'table' | 'card';
+    type: 'text' | 'image' | 'video' | 'button' | 'spacer' | 'table' | 'card' | 'icon' | 'stats' | 'steps';
     content: {
         text?: string;
         url?: string;
@@ -26,6 +30,11 @@ interface Block {
         bulletType?: 'none' | 'dot' | 'check' | 'square';
         subText?: string;   // Small sub-text with bullet
         overlayText?: string; // Text over image
+        iconName?: string;  // Icon name
+        value?: string;     // Stats value
+        label?: string;     // Stats label
+        items?: { title: string, desc: string }[]; // Steps items
+        variant?: string;   // For multiple styles
     };
     style: {
         fontSize?: string;
@@ -69,6 +78,9 @@ const WIDGETS = [
     { type: 'button', label: '버튼', icon: MousePointer2 },
     { type: 'table', label: '표', icon: TableIcon },
     { type: 'card', label: '카드형 박스', icon: CreditCard },
+    { type: 'icon', label: '아이콘', icon: Smile },
+    { type: 'stats', label: '인포그래픽', icon: BarChart3 },
+    { type: 'steps', label: '다이어그램', icon: ListOrdered },
     { type: 'spacer', label: '여백', icon: MoveVertical },
 ];
 
@@ -166,6 +178,9 @@ export default function CampaignEditorPage() {
             case 'video': return { url: '', autoPlay: false };
             case 'table': return { rows: [['구분', '내용'], ['항목1', '설명1'], ['항목2', '설명2']], cellStyles: {} };
             case 'card': return { title: '제목을 입력하세요', text: '여기에 상세 내용을 입력하세요.', badgeText: '01', subText: '' };
+            case 'icon': return { iconName: 'Smile' };
+            case 'stats': return { value: '88%', label: '고객 만족도', iconName: 'Activity', variant: 'default' };
+            case 'steps': return { items: [{ title: 'STEP 01', desc: '상담 신청' }, { title: 'STEP 02', desc: '해피콜 진행' }, { title: 'STEP 03', desc: '설치 완료' }], variant: 'horizontal' };
             default: return {};
         }
     };
@@ -176,6 +191,9 @@ export default function CampaignEditorPage() {
             case 'image': return { width: '100%', borderRadius: '0px', textAlign: 'center', overlayOpacity: 0, fontSize: '24px', color: '#ffffff', fontWeight: 'bold', fontFamily: FONTS[0].value };
             case 'table': return { fontSize: '14px', padding: '10px', backgroundColor: '#ffffff', borderColor: '#eeeeee', borderWidth: '1px' };
             case 'card': return { backgroundColor: '#ffffff', borderRadius: '12px', padding: '30px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', borderColor: '#f1f1f1', borderWidth: '1px', accentSide: 'top', accentColor: '#2563eb', badgeColor: '#e0e7ff' };
+            case 'icon': return { fontSize: '48px', color: '#2563eb', textAlign: 'center', padding: '20px' };
+            case 'stats': return { fontSize: '32px', color: '#2563eb', textAlign: 'center', backgroundColor: '#f8fafc', padding: '30px', borderRadius: '16px' };
+            case 'steps': return { fontSize: '14px', color: '#64748b', textAlign: 'center', accentColor: '#2563eb', padding: '20px' };
             case 'spacer': return { height: '20px' };
             default: return {};
         }
@@ -653,6 +671,91 @@ export default function CampaignEditorPage() {
                                                         </div>
                                                     </div>
                                                 )}
+                                                {block.type === 'icon' && (
+                                                    <div style={{ padding: block.style.padding, textAlign: block.style.textAlign }}>
+                                                        {(() => {
+                                                            const IconComp = (ICON_LIST as any)[block.content.iconName || 'Smile'];
+                                                            return IconComp ? <IconComp style={{ fontSize: block.style.fontSize, color: block.style.color, width: block.style.fontSize, height: block.style.fontSize, display: 'inline-block' }} /> : null;
+                                                        })()}
+                                                    </div>
+                                                )}
+                                                {block.type === 'stats' && (() => {
+                                                    const variant = block.content.variant || 'default';
+                                                    const align = block.style.textAlign || 'center';
+                                                    const IconComp = block.content.iconName && (ICON_LIST as any)[block.content.iconName];
+
+                                                    return (
+                                                        <div style={{ padding: block.style.padding }}>
+                                                            {variant === 'default' && (
+                                                                <div style={{ backgroundColor: block.style.backgroundColor, borderRadius: block.style.borderRadius, padding: '30px', textAlign: align as any }}>
+                                                                    {IconComp && <div className="mb-3"><IconComp style={{ color: block.style.color, width: '40px', height: '40px', margin: align === 'center' ? '0 auto' : align === 'right' ? '0 0 0 auto' : '0' }} /></div>}
+                                                                    <div style={{ color: block.style.color, fontSize: block.style.fontSize, fontWeight: '900', lineHeight: 1.1 }}>{block.content.value}</div>
+                                                                    <div style={{ color: '#64748b', fontSize: '15px', marginTop: '8px', fontWeight: 'bold' }}>{block.content.label}</div>
+                                                                </div>
+                                                            )}
+                                                            {variant === 'outline' && (
+                                                                <div style={{ backgroundColor: 'transparent', border: `2px solid ${block.style.color}`, borderRadius: block.style.borderRadius, padding: '30px', textAlign: align as any }}>
+                                                                    {IconComp && <div className="mb-3"><IconComp style={{ color: block.style.color, width: '40px', height: '40px', margin: align === 'center' ? '0 auto' : align === 'right' ? '0 0 0 auto' : '0' }} /></div>}
+                                                                    <div style={{ color: block.style.color, fontSize: block.style.fontSize, fontWeight: '900', lineHeight: 1.1 }}>{block.content.value}</div>
+                                                                    <div style={{ color: '#64748b', fontSize: '15px', marginTop: '8px', fontWeight: 'bold' }}>{block.content.label}</div>
+                                                                </div>
+                                                            )}
+                                                            {variant === 'row' && (
+                                                                <div style={{ backgroundColor: block.style.backgroundColor, borderRadius: block.style.borderRadius, padding: '20px 30px', display: 'flex', alignItems: 'center', justifyContent: align === 'center' ? 'center' : align === 'right' ? 'flex-end' : 'flex-start', gap: '20px' }}>
+                                                                    {IconComp && <div className="flex-shrink-0"><IconComp style={{ color: block.style.color, width: '48px', height: '48px' }} /></div>}
+                                                                    <div style={{ textAlign: 'left' }}>
+                                                                        <div style={{ color: '#64748b', fontSize: '14px', marginBottom: '4px', fontWeight: 'bold' }}>{block.content.label}</div>
+                                                                        <div style={{ color: block.style.color, fontSize: block.style.fontSize, fontWeight: '900', lineHeight: 1 }}>{block.content.value}</div>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })()}
+                                                {block.type === 'steps' && (() => {
+                                                    const variant = block.content.variant || 'horizontal';
+
+                                                    return (
+                                                        <div style={{ padding: block.style.padding }}>
+                                                            {variant === 'horizontal' && (
+                                                                <div className="flex justify-between items-start">
+                                                                    {block.content.items?.map((item: any, i: number) => (
+                                                                        <div key={i} className="flex-1 flex flex-col items-center relative">
+                                                                            {i < (block.content.items?.length || 0) - 1 && (
+                                                                                <div className="absolute top-5 left-1/2 w-full h-[2px]" style={{ backgroundColor: '#e2e8f0', zIndex: 0 }}></div>
+                                                                            )}
+                                                                            <div className="w-10 h-10 rounded-full flex items-center justify-center relative z-10" style={{ backgroundColor: block.style.accentColor, color: '#fff', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+                                                                                <span className="text-xs font-bold">{i + 1}</span>
+                                                                            </div>
+                                                                            <div className="mt-3 text-center">
+                                                                                <div style={{ fontSize: '13px', fontWeight: '900', color: block.style.accentColor }}>{item.title}</div>
+                                                                                <div style={{ fontSize: block.style.fontSize, color: block.style.color, marginTop: '4px', lineHeight: 1.4 }}>{item.desc}</div>
+                                                                            </div>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                            {variant === 'vertical' && (
+                                                                <div className="flex flex-col gap-6 pl-4">
+                                                                    {block.content.items?.map((item: any, i: number) => (
+                                                                        <div key={i} className="flex items-start relative pb-6 last:pb-0 border-b border-dashed border-gray-100 last:border-0">
+                                                                            {i < (block.content.items?.length || 0) - 1 && (
+                                                                                <div className="absolute top-10 left-5 w-[2px] h-[calc(100%-40px)]" style={{ backgroundColor: '#e2e8f0', zIndex: 0 }}></div>
+                                                                            )}
+                                                                            <div className="w-10 h-10 rounded-full flex items-center justify-center relative z-10 flex-shrink-0" style={{ backgroundColor: block.style.accentColor, color: '#fff', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+                                                                                <span className="text-xs font-bold">{i + 1}</span>
+                                                                            </div>
+                                                                            <div className="ml-5 pt-1">
+                                                                                <div style={{ fontSize: '15px', fontWeight: '900', color: block.style.accentColor }}>{item.title}</div>
+                                                                                <div style={{ fontSize: block.style.fontSize, color: block.style.color, marginTop: '6px', lineHeight: 1.5 }}>{item.desc}</div>
+                                                                            </div>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })()}
                                                 {block.type === 'spacer' && <div style={{ height: block.style.height }}></div>}
                                             </div>
                                         </div>
@@ -1217,6 +1320,165 @@ export default function CampaignEditorPage() {
                                             <option value="0 20px 25px -5px rgba(0,0,0,0.1)">강하게</option>
                                             <option value="0 10px 25px -5px rgba(0,0,0,0.05)">부드럽게 (Modern)</option>
                                         </select>
+                                    </div>
+                                </div>
+                            )}
+
+                            {selectedBlock.type === 'icon' && (
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-400 mb-2 block">아이콘 선택</label>
+                                        <div className="grid grid-cols-5 gap-2 max-h-48 overflow-y-auto p-2 border rounded-lg bg-gray-50">
+                                            {Object.entries(ICON_LIST).map(([name, Icon]) => (
+                                                <button
+                                                    key={name}
+                                                    onClick={() => updateBlock(selectedBlock!.id, { content: { ...selectedBlock!.content, iconName: name } })}
+                                                    className={`p-2 rounded hover:bg-white border transition-all ${selectedBlock!.content.iconName === name ? "border-purple-500 bg-white" : "border-transparent text-gray-400"}`}
+                                                >
+                                                    <Icon className="w-5 h-5 mx-auto" />
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <div className="flex-1">
+                                            <label className="text-xs font-bold text-gray-400 mb-1 block">크기</label>
+                                            <input type="text" className="w-full p-2 border rounded-lg text-xs bg-gray-50" placeholder="48px" value={selectedBlock.style.fontSize} onChange={(e) => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, fontSize: e.target.value } })} />
+                                        </div>
+                                        <div className="flex-1">
+                                            <label className="text-xs font-bold text-gray-400 mb-1 block">색상</label>
+                                            <input type="color" className="w-full h-8 border rounded-lg cursor-pointer" value={selectedBlock.style.color} onChange={(e) => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, color: e.target.value } })} />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-400 mb-1 block">정렬</label>
+                                        <div className="flex gap-1 border rounded-lg p-1 bg-gray-50 text-gray-400">
+                                            {[
+                                                { v: 'left', i: AlignLeft },
+                                                { v: 'center', i: AlignCenter },
+                                                { v: 'right', i: AlignRight }
+                                            ].map(a => (
+                                                <button key={a.v} onClick={() => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, textAlign: a.v as any } })} className={`p-1 rounded flex-1 flex justify-center ${selectedBlock!.style.textAlign === a.v ? "bg-white text-purple-600 shadow-sm" : "hover:bg-white"}`}><a.i className="w-4 h-4" /></button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {selectedBlock.type === 'stats' && (
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-400 mb-2 block">디자인 스타일</label>
+                                        <div className="flex gap-1 bg-gray-50 p-1 rounded-lg border">
+                                            {[
+                                                { id: 'default', label: '세로 기본' },
+                                                { id: 'outline', label: '테두리형' },
+                                                { id: 'row', label: '가로형' }
+                                            ].map(opt => (
+                                                <button key={opt.id} onClick={() => updateBlock(selectedBlock!.id, { content: { ...selectedBlock!.content, variant: opt.id } })} className={`flex-1 py-1.5 text-[10px] font-bold rounded ${selectedBlock!.content.variant === opt.id || (!selectedBlock!.content.variant && opt.id === 'default') ? 'bg-white text-purple-600 shadow-sm border border-gray-200' : 'text-gray-400 hover:text-gray-600'}`}>{opt.label}</button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <label className="text-xs font-bold text-gray-400 mb-1 block">수치 (Value)</label>
+                                            <input type="text" className="w-full p-2 border rounded-lg text-sm bg-gray-50" value={selectedBlock.content.value || ''} onChange={(e) => updateBlock(selectedBlock!.id, { content: { ...selectedBlock!.content, value: e.target.value } })} />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-bold text-gray-400 mb-1 block">라벨 (Label)</label>
+                                            <input type="text" className="w-full p-2 border rounded-lg text-sm bg-gray-50" value={selectedBlock.content.label || ''} onChange={(e) => updateBlock(selectedBlock!.id, { content: { ...selectedBlock!.content, label: e.target.value } })} />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-400 mb-2 block">아이콘</label>
+                                        <div className="grid grid-cols-6 gap-1 max-h-32 overflow-y-auto p-2 border rounded-lg bg-gray-50">
+                                            <button onClick={() => updateBlock(selectedBlock!.id, { content: { ...selectedBlock!.content, iconName: '' } })} className="p-1 text-[10px] text-gray-400 border rounded">없음</button>
+                                            {Object.keys(ICON_LIST).map(name => {
+                                                const Icon = (ICON_LIST as any)[name];
+                                                return (
+                                                    <button key={name} onClick={() => updateBlock(selectedBlock!.id, { content: { ...selectedBlock!.content, iconName: name } })} className={`p-1 border rounded ${selectedBlock!.content.iconName === name ? "border-purple-500 bg-white" : "border-transparent"}`}>
+                                                        <Icon className="w-4 h-4 mx-auto" />
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <label className="text-xs font-bold text-gray-400 mb-1 block">배경색</label>
+                                            <input type="color" className="w-full h-8 border rounded-lg cursor-pointer" value={selectedBlock.style.backgroundColor || "#f8fafc"} onChange={(e) => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, backgroundColor: e.target.value } })} />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-bold text-gray-400 mb-1 block">강조색</label>
+                                            <input type="color" className="w-full h-8 border rounded-lg cursor-pointer" value={selectedBlock.style.color || "#2563eb"} onChange={(e) => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, color: e.target.value } })} />
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <label className="text-xs font-bold text-gray-400 mb-1 block">글자 크기</label>
+                                            <input type="text" className="w-full p-2 border rounded-lg text-xs bg-gray-50" value={selectedBlock.style.fontSize} onChange={(e) => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, fontSize: e.target.value } })} />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-bold text-gray-400 mb-1 block">곡률</label>
+                                            <input type="text" className="w-full p-2 border rounded-lg text-xs bg-gray-50" value={selectedBlock.style.borderRadius} onChange={(e) => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, borderRadius: e.target.value } })} />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {selectedBlock.type === 'steps' && (
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-400 mb-2 block">다이어그램 형태</label>
+                                        <div className="flex gap-1 bg-gray-50 p-1 rounded-lg border">
+                                            {[
+                                                { id: 'horizontal', label: '가로 타임라인' },
+                                                { id: 'vertical', label: '세로 리스트형' },
+                                            ].map(opt => (
+                                                <button key={opt.id} onClick={() => updateBlock(selectedBlock!.id, { content: { ...selectedBlock!.content, variant: opt.id } })} className={`flex-1 py-1.5 text-[10px] font-bold rounded ${selectedBlock!.content.variant === opt.id || (!selectedBlock!.content.variant && opt.id === 'horizontal') ? 'bg-white text-purple-600 shadow-sm border border-gray-200' : 'text-gray-400 hover:text-gray-600'}`}>{opt.label}</button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <label className="text-xs font-bold text-gray-400 mb-1 block uppercase">단계 편집 (Steps)</label>
+                                    <div className="space-y-3 bg-gray-50 p-3 rounded-lg border">
+                                        {selectedBlock.content.items?.map((item, i) => (
+                                            <div key={i} className="space-y-2 pb-3 border-b border-gray-200 last:border-0 relative group">
+                                                <button
+                                                    onClick={() => {
+                                                        const items = selectedBlock!.content.items!.filter((_, idx) => idx !== i);
+                                                        updateBlock(selectedBlock!.id, { content: { ...selectedBlock!.content, items } });
+                                                    }}
+                                                    className="absolute -right-1 -top-1 w-5 h-5 bg-red-50 text-red-400 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity border border-red-100"
+                                                >✕</button>
+                                                <input type="text" className="w-full p-2 border rounded text-xs" value={item.title} onChange={(e) => {
+                                                    const items = [...selectedBlock!.content.items!];
+                                                    items[i].title = e.target.value;
+                                                    updateBlock(selectedBlock!.id, { content: { ...selectedBlock!.content, items } });
+                                                }} placeholder="상단 텍스트" />
+                                                <input type="text" className="w-full p-2 border rounded text-xs" value={item.desc} onChange={(e) => {
+                                                    const items = [...selectedBlock!.content.items!];
+                                                    items[i].desc = e.target.value;
+                                                    updateBlock(selectedBlock!.id, { content: { ...selectedBlock!.content, items } });
+                                                }} placeholder="하단 설명" />
+                                            </div>
+                                        ))}
+                                        <button
+                                            onClick={() => {
+                                                const items = [...(selectedBlock!.content.items || []), { title: '새 단계', desc: '설명 입력' }];
+                                                updateBlock(selectedBlock!.id, { content: { ...selectedBlock!.content, items } });
+                                            }}
+                                            className="w-full py-2 border border-dashed border-gray-300 rounded text-[10px] text-gray-400 hover:bg-white hover:text-purple-500 hover:border-purple-200 transition-all"
+                                        >+ 단계 추가</button>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <div className="flex-1">
+                                            <label className="text-xs font-bold text-gray-400 mb-1 block">강조색</label>
+                                            <input type="color" className="w-full h-8 border rounded-lg cursor-pointer" value={selectedBlock.style.accentColor || "#2563eb"} onChange={(e) => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, accentColor: e.target.value } })} />
+                                        </div>
+                                        <div className="flex-1">
+                                            <label className="text-xs font-bold text-gray-400 mb-1 block">글자색</label>
+                                            <input type="color" className="w-full h-8 border rounded-lg cursor-pointer" value={selectedBlock.style.color || "#64748b"} onChange={(e) => updateBlock(selectedBlock!.id, { style: { ...selectedBlock!.style, color: e.target.value } })} />
+                                        </div>
                                     </div>
                                 </div>
                             )}
