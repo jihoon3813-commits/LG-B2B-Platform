@@ -418,10 +418,10 @@ export default function CampaignEditorPage() {
 
                 {/* Canvas */}
                 <div className="flex-1 bg-gray-100 flex justify-center items-start overflow-auto p-8" onClick={() => { setSelectedId(null); setSelectedType(null); }}>
-                    <div className="w-[375px] h-[750px] max-h-full my-auto bg-white shadow-2xl rounded-[40px] overflow-hidden border-[12px] border-gray-900 relative flex flex-col">
+                    <div className="w-[480px] h-[750px] max-h-full my-auto bg-white shadow-2xl rounded-[40px] overflow-hidden border-[12px] border-gray-900 relative flex flex-col">
                         <div className="h-6 bg-gray-900 flex justify-center items-center"><div className="w-16 h-1 bg-gray-700 rounded-full"></div></div>
 
-                        <div className="flex-1 overflow-y-auto bg-white relative">
+                        <div className="flex-1 overflow-y-auto bg-white relative pb-10">
                             {sections.map((section, sIndex) => (
                                 <div
                                     key={section.id}
@@ -461,7 +461,7 @@ export default function CampaignEditorPage() {
                                                 setSelectedId(block.id);
                                                 setSelectedType('block');
                                             }}
-                                            className={`relative group/block cursor-pointer
+                                            className={`relative group/block cursor-pointer mb-2 last:mb-0
                                             ${(selectedType === 'block' && selectedId === block.id) ? "ring-2 ring-purple-500 z-20" : "hover:ring-1 hover:ring-purple-200"}
                                         `}
                                         >
@@ -659,6 +659,9 @@ export default function CampaignEditorPage() {
                                     ))}
                                 </div>
                             ))}
+                        </div>
+                        <div className="py-4 text-center text-[10px] text-gray-400 bg-gray-50 border-t z-20 relative">
+                            Powered by <strong>LG B2B Platform</strong>
                         </div>
                     </div>
                 </div>
