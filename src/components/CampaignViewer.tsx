@@ -37,6 +37,22 @@ function getYouTubeId(url: string) {
     return (match && match[2].length === 11) ? match[2] : null;
 }
 
+const formatPhoneNumber = (value: string) => {
+    if (!value) return "";
+    const raw = value.replace(/[^0-9]/g, '');
+    let formatted = raw;
+    if (raw.startsWith('02')) {
+        if (raw.length > 2 && raw.length <= 5) formatted = raw.replace(/(\d{2})(\d{1,3})/, '$1-$2');
+        else if (raw.length > 5 && raw.length <= 9) formatted = raw.replace(/(\d{2})(\d{3})(\d{1,4})/, '$1-$2-$3');
+        else if (raw.length > 9) formatted = raw.replace(/(\d{2})(\d{4})(\d{1,4})/, '$1-$2-$3');
+    } else {
+        if (raw.length > 3 && raw.length <= 6) formatted = raw.replace(/(\d{3})(\d{1,3})/, '$1-$2');
+        else if (raw.length > 6 && raw.length <= 10) formatted = raw.replace(/(\d{3})(\d{3})(\d{1,4})/, '$1-$2-$3');
+        else if (raw.length > 10) formatted = raw.replace(/(\d{3})(\d{4})(\d{1,4})/, '$1-$2-$3');
+    }
+    return formatted;
+};
+
 function InquiryForm({ block, campaignId }: { block: any, campaignId: Id<"campaigns"> }) {
     const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
     const [formData, setFormData] = useState<Record<string, string>>({});
@@ -129,9 +145,15 @@ function InquiryForm({ block, campaignId }: { block: any, campaignId: Id<"campai
                                 type={field.type}
                                 required={field.required}
                                 placeholder={field.placeholder}
+                                inputMode={field.type === 'tel' ? 'numeric' : undefined}
+                                pattern={field.type === 'tel' ? '[0-9-]*' : undefined}
                                 className={baseInputClass + variantClasses}
-                                value={formData[field.label] || ''}
-                                onChange={(e) => setFormData({ ...formData, [field.label]: e.target.value })}
+                                value={field.type === 'tel' ? formatPhoneNumber(formData[field.label]) : (formData[field.label] || '')}
+                                onChange={(e) => {
+                                    let val = e.target.value;
+                                    if (field.type === 'tel') val = val.replace(/[^0-9]/g, '');
+                                    setFormData({ ...formData, [field.label]: val });
+                                }}
                             />
                         )}
                     </div>

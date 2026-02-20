@@ -796,7 +796,13 @@ export default function CampaignEditorPage() {
                                                                                         <option value="">{field.placeholder || '선택해주세요'}</option>
                                                                                     </select>
                                                                                 ) : (
-                                                                                    <input type={field.type === 'tel' ? 'tel' : field.type === 'email' ? 'email' : 'text'} placeholder={field.placeholder} className="w-full text-sm px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 outline-none" />
+                                                                                    <input
+                                                                                        type={field.type === 'tel' ? 'tel' : field.type === 'email' ? 'email' : 'text'}
+                                                                                        placeholder={field.placeholder}
+                                                                                        className="w-full text-sm px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 outline-none"
+                                                                                        inputMode={field.type === 'tel' ? 'numeric' : undefined}
+                                                                                        pattern={field.type === 'tel' ? '[0-9-]*' : undefined}
+                                                                                    />
                                                                                 )}
                                                                             </div>
                                                                         ))}
@@ -821,7 +827,13 @@ export default function CampaignEditorPage() {
                                                                                         <option value="">{field.label} {field.required ? '*' : ''}</option>
                                                                                     </select>
                                                                                 ) : (
-                                                                                    <input type={field.type === 'tel' ? 'tel' : field.type === 'email' ? 'email' : 'text'} placeholder={`${field.label} ${field.required ? '*' : ''}`} className="w-full text-sm px-0 py-3 border-b-2 border-gray-200 bg-transparent outline-none placeholder:text-gray-400 focus:border-black transition-colors" />
+                                                                                    <input
+                                                                                        type={field.type === 'tel' ? 'tel' : field.type === 'email' ? 'email' : 'text'}
+                                                                                        placeholder={`${field.label} ${field.required ? '*' : ''}`}
+                                                                                        className="w-full text-sm px-0 py-3 border-b-2 border-gray-200 bg-transparent outline-none placeholder:text-gray-400 focus:border-black transition-colors"
+                                                                                        inputMode={field.type === 'tel' ? 'numeric' : undefined}
+                                                                                        pattern={field.type === 'tel' ? '[0-9-]*' : undefined}
+                                                                                    />
                                                                                 )}
                                                                             </div>
                                                                         ))}
