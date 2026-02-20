@@ -417,8 +417,8 @@ export default function CampaignEditorPage() {
                 </div>
 
                 {/* Canvas */}
-                <div className="flex-1 bg-gray-100 flex justify-center items-center overflow-auto p-8" onClick={() => { setSelectedId(null); setSelectedType(null); }}>
-                    <div className="w-[375px] min-h-[667px] bg-white shadow-2xl rounded-[40px] overflow-hidden border-[12px] border-gray-900 relative flex flex-col">
+                <div className="flex-1 bg-gray-100 flex justify-center items-start overflow-auto p-8" onClick={() => { setSelectedId(null); setSelectedType(null); }}>
+                    <div className="w-[375px] h-[750px] max-h-full my-auto bg-white shadow-2xl rounded-[40px] overflow-hidden border-[12px] border-gray-900 relative flex flex-col">
                         <div className="h-6 bg-gray-900 flex justify-center items-center"><div className="w-16 h-1 bg-gray-700 rounded-full"></div></div>
 
                         <div className="flex-1 overflow-y-auto bg-white relative">
@@ -481,8 +481,8 @@ export default function CampaignEditorPage() {
                                                         <div className="relative overflow-hidden" style={{ width: block.style.width || '100%', height: block.style.height || 'auto', borderRadius: block.style.borderRadius }}>
                                                             {block.content.url ? (
                                                                 block.content.url.startsWith('http')
-                                                                    ? <img src={block.content.url} alt="" style={{ width: '100%', height: '100%', objectFit: (block.style.width || block.style.height) === 'auto' ? 'contain' : 'cover', display: 'block' }} />
-                                                                    : <StorageImage storageId={block.content.url} style={{ width: '100%', height: '100%', objectFit: (block.style.width || block.style.height) === 'auto' ? 'contain' : 'cover', display: 'block' }} />
+                                                                    ? <img src={block.content.url} alt="" style={{ width: '100%', height: block.style.height || 'auto', objectFit: block.style.height ? 'cover' : 'contain', display: 'block' }} />
+                                                                    : <StorageImage storageId={block.content.url} style={{ width: '100%', height: block.style.height || 'auto', objectFit: block.style.height ? 'cover' : 'contain', display: 'block' }} />
                                                             ) : <div className="bg-gray-100 h-20 flex items-center justify-center text-xs text-gray-400">이미지 없음</div>}
 
                                                             {/* Overlay */}

@@ -113,8 +113,8 @@ export default function CampaignViewer({ campaignId, slug }: CampaignViewerProps
                                                         <div className="relative inline-block overflow-hidden" style={{ width: block.style.width || '100%', borderRadius: block.style.borderRadius }}>
                                                             {block.content.url ? (
                                                                 block.content.url.startsWith('http') || block.content.url.startsWith('data:')
-                                                                    ? <img src={block.content.url} alt={block.content.alt} style={{ width: '100%', height: '100%', objectFit: (block.style.width || block.style.height) === 'auto' ? 'contain' : 'cover', display: 'block' }} className="max-w-full h-auto" />
-                                                                    : <StorageImage storageId={block.content.url} alt={block.content.alt} style={{ width: '100%', height: '100%', objectFit: (block.style.width || block.style.height) === 'auto' ? 'contain' : 'cover', display: 'block' }} className="max-w-full h-auto" />
+                                                                    ? <img src={block.content.url} alt={block.content.alt} style={{ width: '100%', height: block.style.height || 'auto', objectFit: block.style.height ? 'cover' : 'contain', display: 'block' }} className="max-w-full h-auto" />
+                                                                    : <StorageImage storageId={block.content.url} alt={block.content.alt} style={{ width: '100%', height: block.style.height || 'auto', objectFit: block.style.height ? 'cover' : 'contain', display: 'block' }} className="max-w-full h-auto" />
                                                             ) : null}
 
                                                             {/* Overlay */}
