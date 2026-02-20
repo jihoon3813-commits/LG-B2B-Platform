@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
@@ -11,6 +11,11 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const loginMutation = useMutation(api.users.login);
 
@@ -42,6 +47,13 @@ export default function LoginPage() {
       setIsLoading(false);
     }
   };
+  if (!mounted) {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--primary)]"></div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gray-50 dark:bg-gray-900">
