@@ -772,27 +772,70 @@ export default function CampaignEditorPage() {
                                                         </div>
                                                     );
                                                 })()}
-                                                {block.type === 'inquiry' && (
-                                                    <div style={{ padding: '20px' }}>
-                                                        <div className="bg-white border rounded-xl p-6 shadow-sm pointer-events-none opacity-80 border-dashed border-purple-200">
-                                                            <div className="flex items-center gap-2 mb-6 border-b pb-2">
-                                                                <FileText className="w-4 h-4 text-purple-500" />
-                                                                <span className="text-xs font-bold text-purple-500 uppercase">Consultation Inquiry Form Preview</span>
-                                                            </div>
-                                                            <div className="space-y-4">
-                                                                {block.content.formFields?.map((field: any, i: number) => (
-                                                                    <div key={i} className="space-y-1">
-                                                                        <div className="w-20 h-2 bg-gray-100 rounded"></div>
-                                                                        <div className="w-full h-10 bg-gray-50 border rounded-lg"></div>
+                                                {block.type === 'inquiry' && (() => {
+                                                    const variant = block.content.variant || 'default';
+                                                    const accentColor = block.style.accentColor || '#1e3a8a';
+                                                    const buttonText = block.content.submitButtonText || '신청하기';
+                                                    const fields = block.content.formFields || [];
+
+                                                    return (
+                                                        <div style={{ padding: block.style.padding || '20px' }}>
+                                                            {variant === 'default' && (
+                                                                <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 relative pointer-events-none" style={{ backgroundColor: block.style.backgroundColor, borderRadius: block.style.borderRadius }}>
+                                                                    <div className="space-y-4">
+                                                                        {fields.map((field: any, i: number) => (
+                                                                            <div key={i} className="flex flex-col gap-1.5">
+                                                                                <label className="text-sm font-bold text-gray-700 flex items-center gap-1">
+                                                                                    {field.label}
+                                                                                    {field.required && <span className="text-red-500 text-xs">*</span>}
+                                                                                </label>
+                                                                                {field.type === 'textarea' ? (
+                                                                                    <textarea placeholder={field.placeholder} className="w-full text-sm px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 resize-none h-24 outline-none"></textarea>
+                                                                                ) : field.type === 'select' ? (
+                                                                                    <select className="w-full text-sm px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 outline-none">
+                                                                                        <option value="">{field.placeholder || '선택해주세요'}</option>
+                                                                                    </select>
+                                                                                ) : (
+                                                                                    <input type={field.type === 'tel' ? 'tel' : field.type === 'email' ? 'email' : 'text'} placeholder={field.placeholder} className="w-full text-sm px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 outline-none" />
+                                                                                )}
+                                                                            </div>
+                                                                        ))}
+                                                                        <div className="pt-4">
+                                                                            <button disabled className="w-full py-4 rounded-xl text-white font-bold text-base transition-all shadow-md flex items-center justify-center gap-2" style={{ backgroundColor: accentColor }}>
+                                                                                <FileText className="w-4 h-4" />
+                                                                                {buttonText}
+                                                                            </button>
+                                                                        </div>
                                                                     </div>
-                                                                ))}
-                                                                <div className="w-full h-12 bg-blue-500 rounded-xl mt-4 flex items-center justify-center">
-                                                                    <div className="w-24 h-3 bg-white/30 rounded"></div>
                                                                 </div>
-                                                            </div>
+                                                            )}
+                                                            {variant === 'minimal' && (
+                                                                <div className="p-6 relative pointer-events-none" style={{ backgroundColor: block.style.backgroundColor || 'transparent' }}>
+                                                                    <div className="space-y-5">
+                                                                        {fields.map((field: any, i: number) => (
+                                                                            <div key={i}>
+                                                                                {field.type === 'textarea' ? (
+                                                                                    <textarea placeholder={`${field.label} ${field.required ? '*' : ''}`} className="w-full text-sm px-0 py-3 border-b-2 border-gray-200 bg-transparent resize-none h-20 outline-none placeholder:text-gray-400 focus:border-black transition-colors"></textarea>
+                                                                                ) : field.type === 'select' ? (
+                                                                                    <select className="w-full text-sm px-0 py-3 border-b-2 border-gray-200 bg-transparent outline-none text-gray-400 focus:border-black transition-colors">
+                                                                                        <option value="">{field.label} {field.required ? '*' : ''}</option>
+                                                                                    </select>
+                                                                                ) : (
+                                                                                    <input type={field.type === 'tel' ? 'tel' : field.type === 'email' ? 'email' : 'text'} placeholder={`${field.label} ${field.required ? '*' : ''}`} className="w-full text-sm px-0 py-3 border-b-2 border-gray-200 bg-transparent outline-none placeholder:text-gray-400 focus:border-black transition-colors" />
+                                                                                )}
+                                                                            </div>
+                                                                        ))}
+                                                                        <div className="pt-6">
+                                                                            <button disabled className="w-full py-4 text-white font-black text-lg transition-all" style={{ backgroundColor: accentColor, borderRadius: block.style.borderRadius || '0px' }}>
+                                                                                {buttonText}
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            )}
                                                         </div>
-                                                    </div>
-                                                )}
+                                                    );
+                                                })()}
                                                 {block.type === 'spacer' && <div style={{ height: block.style.height }}></div>}
                                             </div>
                                         </div>

@@ -22,7 +22,7 @@ interface Inquiry {
 }
 
 export default function CampaignInquiryListPage() {
-    const inquiries = useQuery(api.campaignInquiries.list) as Inquiry[] | undefined;
+    const inquiries = useQuery(api.campaignInquiries.list, {}) as Inquiry[] | undefined;
     const updateStatus = useMutation(api.campaignInquiries.updateStatus);
     const removeInquiry = useMutation(api.campaignInquiries.remove);
     const [searchTerm, setSearchTerm] = useState("");

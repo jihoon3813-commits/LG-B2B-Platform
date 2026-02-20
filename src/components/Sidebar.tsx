@@ -33,8 +33,11 @@ export default function Sidebar() {
     const [userEmail, setUserEmail] = useState("");
 
     useEffect(() => {
-        const email = localStorage.getItem("user_email");
-        if (email) setUserEmail(email);
+        const timeout = setTimeout(() => {
+            const email = localStorage.getItem("user_email");
+            if (email) setUserEmail(email);
+        }, 0);
+        return () => clearTimeout(timeout);
     }, []);
 
     const user = useQuery(api.users.getMe, userEmail ? { email: userEmail } : "skip");
