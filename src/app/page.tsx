@@ -26,7 +26,6 @@ export default function LoginPage() {
 
     try {
       // API 호출
-      // @ts-expect-error (타입 추론이 늦을 수 있음)
       const result = await loginMutation({ email, password });
 
       if (result && result.success && result.user) {
