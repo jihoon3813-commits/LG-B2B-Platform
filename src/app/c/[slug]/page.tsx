@@ -3,11 +3,15 @@ import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../convex/_generated/api";
 import CampaignViewer from "@/components/CampaignViewer";
 
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+if (!convexUrl && process.env.NODE_ENV === 'production') {
+    console.warn("NEXT_PUBLIC_CONVEX_URL is not defined");
+}
+const convex = convexUrl ? new ConvexHttpClient(convexUrl) : null;
 
 // Helper to resolve image URL
 async function getImageUrl(image: string) {
-    if (!image) return null;
+    if (!image || !convex) return null;
     if (image.startsWith('http')) return image;
     // It's a storage ID, fetch URL
     return await convex.query(api.campaigns.getFileUrl, { storageId: image });
@@ -15,6 +19,9 @@ async function getImageUrl(image: string) {
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
     const { slug } = await params;
+
+    if (!convex) return { title: 'Configuration Error' };
+
     const campaign = await convex.query(api.campaigns.getBySlug, { slug });
 
     if (!campaign) {
