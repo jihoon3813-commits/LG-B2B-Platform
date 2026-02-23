@@ -16,7 +16,7 @@ interface Inquiry {
     company?: string;
     email?: string;
     memo?: string;
-    formData?: Record<string, any>;
+    formData?: any; // 지원되는 두 가지 형식: Record<string, any> (이전) 또는 {label, value}[] (신규)
     status: string;
     createdAt: number;
 }
@@ -158,14 +158,23 @@ export default function CampaignInquiryListPage() {
                                     </div>
                                 )}
 
-                                {inquiry.formData && Object.keys(inquiry.formData).length > 0 && (
+                                {inquiry.formData && (Array.isArray(inquiry.formData) ? inquiry.formData.length > 0 : Object.keys(inquiry.formData).length > 0) && (
                                     <div className="flex flex-wrap gap-2 pt-2">
-                                        {Object.entries(inquiry.formData).map(([label, value]) => (
-                                            <div key={label} className="bg-blue-50 border border-blue-100 rounded-lg px-3 py-1.5 flex flex-col">
-                                                <span className="text-[10px] font-bold text-blue-400">{label}</span>
-                                                <span className="text-xs font-bold text-blue-700">{String(value)}</span>
-                                            </div>
-                                        ))}
+                                        {Array.isArray(inquiry.formData) ? (
+                                            inquiry.formData.map((field: any, idx: number) => (
+                                                <div key={idx} className="bg-blue-50 border border-blue-100 rounded-lg px-3 py-1.5 flex flex-col">
+                                                    <span className="text-[10px] font-bold text-blue-400">{field.label}</span>
+                                                    <span className="text-xs font-bold text-blue-700">{String(field.value)}</span>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            Object.entries(inquiry.formData).map(([label, value]) => (
+                                                <div key={label} className="bg-blue-50 border border-blue-100 rounded-lg px-3 py-1.5 flex flex-col">
+                                                    <span className="text-[10px] font-bold text-blue-400">{label}</span>
+                                                    <span className="text-xs font-bold text-blue-700">{String(value)}</span>
+                                                </div>
+                                            ))
+                                        )}
                                     </div>
                                 )}
                             </div>

@@ -23,6 +23,12 @@ export const submit = mutation({
         const campaign = await ctx.db.get(args.campaignId);
         if (!campaign) throw new Error("캠페인을 찾을 수 없습니다.");
 
+        // Convert formData object to array of { label, value } to avoid non-ASCII key errors in Convex
+        const formDataArray = args.formData ? Object.entries(args.formData).map(([label, value]) => ({
+            label,
+            value: String(value)
+        })) : [];
+
         const inquiryId = await ctx.db.insert("campaign_inquiries", {
             campaignId: args.campaignId,
             campaignTitle: campaign.title,
@@ -31,7 +37,7 @@ export const submit = mutation({
             company: args.company,
             email: args.email,
             memo: args.memo,
-            formData: args.formData,
+            formData: formDataArray,
             status: "대기",
             createdAt: Date.now(),
         });
