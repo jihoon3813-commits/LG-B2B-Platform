@@ -96,114 +96,90 @@ export default function CampaignInquiryListPage() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4">
-                {filteredInquiries?.map((inquiry: Inquiry) => (
-                    <div key={inquiry._id} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all group relative overflow-hidden">
-                        <div className={`absolute left-0 top-0 bottom-0 w-1 ${statusColors[inquiry.status].split(' ')[1].replace('text-', 'bg-')}`} />
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left">
+                        <thead className="bg-gray-50 text-gray-400 font-black text-[10px] uppercase tracking-widest border-b border-gray-100">
+                            <tr>
+                                <th className="px-6 py-4 w-16 text-center">No.</th>
+                                <th className="px-6 py-4 w-40">신청날짜</th>
+                                <th className="px-6 py-4 w-32">이름</th>
+                                <th className="px-6 py-4 w-40">연락처</th>
+                                <th className="px-6 py-4">메모 / 추가정보</th>
+                                <th className="px-6 py-4 w-32">상태</th>
+                                <th className="px-6 py-4 w-16 text-center">관리</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50 text-gray-600">
+                            {filteredInquiries?.map((inquiry: Inquiry, index: number) => {
+                                // Extract extra fields from formData if it's an array
+                                const extraInfo = Array.isArray(inquiry.formData)
+                                    ? inquiry.formData.map((f: any) => `${f.label}: ${f.value}`).join(' / ')
+                                    : inquiry.formData
+                                        ? Object.entries(inquiry.formData).map(([k, v]) => `${k}: ${v}`).join(' / ')
+                                        : '';
 
-                        <div className="flex flex-col lg:flex-row gap-6">
-                            <div className="flex-1 space-y-4">
-                                <div className="flex items-start justify-between">
-                                    <div className="space-y-1">
-                                        <div className="flex items-center gap-2">
-                                            <h3 className="text-lg font-bold">{inquiry.name}</h3>
-                                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${statusColors[inquiry.status]}`}>
-                                                {inquiry.status}
-                                            </span>
-                                        </div>
-                                        <p className="text-xs text-gray-400 flex items-center gap-1 font-medium">
-                                            <Megaphone className="w-3 h-3" />
-                                            {inquiry.campaignTitle}
-                                        </p>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="text-xs text-gray-400 flex items-center gap-1 justify-end">
-                                            <Clock className="w-3 h-3" />
-                                            {new Date(inquiry.createdAt).toLocaleString()}
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                    <div className="flex items-center gap-2 text-sm">
-                                        <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400">
-                                            <Phone className="w-4 h-4" />
-                                        </div>
-                                        <span className="font-semibold text-gray-700">{inquiry.phoneNumber}</span>
-                                    </div>
-                                    {inquiry.email && (
-                                        <div className="flex items-center gap-2 text-sm">
-                                            <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400">
-                                                <Mail className="w-4 h-4" />
+                                return (
+                                    <tr key={inquiry._id} className="hover:bg-gray-50/50 transition-colors">
+                                        <td className="px-6 py-4 text-center font-medium text-gray-400">
+                                            {(filteredInquiries?.length || 0) - index}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="flex flex-col">
+                                                <span className="font-bold text-gray-700">{new Date(inquiry.createdAt).toLocaleDateString()}</span>
+                                                <span className="text-[10px] text-gray-400">{new Date(inquiry.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                             </div>
-                                            <span className="text-gray-600 truncate">{inquiry.email}</span>
-                                        </div>
-                                    )}
-                                    {inquiry.company && (
-                                        <div className="flex items-center gap-2 text-sm">
-                                            <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400">
-                                                <Building className="w-4 h-4" />
+                                        </td>
+                                        <td className="px-6 py-4 font-bold text-gray-900 border-l-4 border-transparent hover:border-blue-500 pl-4 transition-all">
+                                            {inquiry.name}
+                                            <div className="text-[10px] font-medium text-blue-500 mt-0.5 truncate max-w-[120px]" title={inquiry.campaignTitle}>
+                                                {inquiry.campaignTitle}
                                             </div>
-                                            <span className="text-gray-600 truncate">{inquiry.company}</span>
-                                        </div>
-                                    )}
-                                </div>
+                                        </td>
+                                        <td className="px-6 py-4 font-semibold">
+                                            {inquiry.phoneNumber}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="max-w-md">
+                                                {inquiry.memo && <p className="font-medium text-gray-800 mb-1">{inquiry.memo}</p>}
+                                                {extraInfo && (
+                                                    <p className="text-[11px] text-gray-400 leading-tight">
+                                                        {extraInfo}
+                                                    </p>
+                                                )}
+                                                {!inquiry.memo && !extraInfo && <span className="text-gray-300 italic">남긴 내용 없음</span>}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <select
+                                                className={`w-full p-1.5 rounded-lg text-xs font-bold outline-none border transition-all ${statusColors[inquiry.status]}`}
+                                                value={inquiry.status}
+                                                onChange={(e) => handleStatusUpdate(inquiry._id, e.target.value)}
+                                            >
+                                                <option value="대기">대기</option>
+                                                <option value="진행중">상담중</option>
+                                                <option value="완료">완료</option>
+                                                <option value="거절">거절</option>
+                                            </select>
+                                        </td>
+                                        <td className="px-6 py-4 text-center">
+                                            <button
+                                                onClick={() => handleDelete(inquiry._id)}
+                                                className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                                title="삭제"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
 
-                                {inquiry.memo && (
-                                    <div className="bg-gray-50 p-4 rounded-xl space-y-2">
-                                        <div className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                                            <MessageSquare className="w-3 h-3" /> Consultation Request memo
-                                        </div>
-                                        <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{inquiry.memo}</p>
-                                    </div>
-                                )}
-
-                                {inquiry.formData && (Array.isArray(inquiry.formData) ? inquiry.formData.length > 0 : Object.keys(inquiry.formData).length > 0) && (
-                                    <div className="flex flex-wrap gap-2 pt-2">
-                                        {Array.isArray(inquiry.formData) ? (
-                                            inquiry.formData.map((field: any, idx: number) => (
-                                                <div key={idx} className="bg-blue-50 border border-blue-100 rounded-lg px-3 py-1.5 flex flex-col">
-                                                    <span className="text-[10px] font-bold text-blue-400">{field.label}</span>
-                                                    <span className="text-xs font-bold text-blue-700">{String(field.value)}</span>
-                                                </div>
-                                            ))
-                                        ) : (
-                                            Object.entries(inquiry.formData).map(([label, value]) => (
-                                                <div key={label} className="bg-blue-50 border border-blue-100 rounded-lg px-3 py-1.5 flex flex-col">
-                                                    <span className="text-[10px] font-bold text-blue-400">{label}</span>
-                                                    <span className="text-xs font-bold text-blue-700">{String(value)}</span>
-                                                </div>
-                                            ))
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="flex lg:flex-col gap-2 justify-end lg:justify-start lg:w-48 lg:border-l lg:pl-6 border-gray-50">
-                                <div className="text-[10px] font-black text-gray-400 mb-1 lg:block hidden tracking-wide">STATUS ACTION</div>
-                                <select
-                                    className={`w-full p-2.5 rounded-xl text-xs font-bold outline-none border transition-all ${statusColors[inquiry.status]}`}
-                                    value={inquiry.status}
-                                    onChange={(e) => handleStatusUpdate(inquiry._id, e.target.value)}
-                                >
-                                    <option value="대기">대기 중</option>
-                                    <option value="진행중">상담 진행중</option>
-                                    <option value="완료">상담 완료</option>
-                                    <option value="거절">신청 거절</option>
-                                </select>
-                                <button
-                                    onClick={() => handleDelete(inquiry._id)}
-                                    className="p-2.5 lg:w-full border border-gray-100 bg-white text-gray-400 hover:text-red-500 hover:bg-red-50 hover:border-red-100 rounded-xl transition-all flex items-center justify-center gap-2 text-xs font-bold"
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                    <span className="lg:inline hidden">신청 삭제</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                ))}
                 {(!filteredInquiries || filteredInquiries.length === 0) && (
-                    <div className="py-20 text-center text-gray-400 bg-white rounded-2xl border border-dashed border-gray-200">
+                    <div className="py-20 text-center text-gray-400 border-t border-gray-50">
                         <AlertCircle className="w-12 h-12 mx-auto mb-4 opacity-10" />
                         상담 신청 내역이 없습니다.
                     </div>
