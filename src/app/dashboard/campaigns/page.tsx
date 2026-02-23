@@ -64,7 +64,7 @@ export default function CampaignListPage() {
                         {/* Preview Area */}
                         <div className="aspect-[9/16] bg-gray-50 flex items-center justify-center relative overflow-hidden border-b border-gray-50">
                             {(campaign.thumbnailUrl || campaign.ogImage) ? (
-                                <img src={campaign.thumbnailUrl || campaign.ogImage} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                <img src={campaign.thumbnailUrl || campaign.ogImage} className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500" />
                             ) : (
                                 <div className="text-gray-300 flex flex-col items-center">
                                     <Smartphone className="w-12 h-12 mb-3 opacity-20" />
@@ -94,7 +94,7 @@ export default function CampaignListPage() {
                         <div className="p-5 space-y-4 flex-1 flex flex-col">
                             <div className="flex justify-between items-start gap-3">
                                 <div className="flex-1 min-w-0">
-                                    <h3 className="font-black text-gray-900 truncate group-hover:text-blue-600 transition-colors">{campaign.title}</h3>
+                                    <h3 className="font-black text-gray-900 break-keep group-hover:text-blue-600 transition-colors leading-tight">{campaign.title}</h3>
                                     <p className="text-[10px] font-bold text-gray-400 mt-1 flex items-center gap-1">
                                         <Calendar className="w-3 h-3" />
                                         {new Date(campaign._creationTime).toLocaleDateString()}

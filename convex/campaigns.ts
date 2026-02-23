@@ -97,35 +97,45 @@ export const list = query({
                     ogImage = (await ctx.storage.getUrl(ogImage as any)) || undefined;
                 }
 
-                // 둘 다 없는 경우, 카드 목록에서 보여줄 프리뷰용 이미지 추출 (첫 번째 이미지 위젯 혹은 섹션 배경)
+                // 둘 다 없는 경우, 카드 목록에서 보여줄 프리뷰용 이미지 추출 (첫 번째 섹션의 이미지 위젯을 히어로 이미지로 간주)
                 let previewUrl = thumbnailUrl || ogImage;
 
                 if (!previewUrl && c.blocks) {
                     try {
                         const sections = c.blocks as any[];
-                        for (const section of sections) {
-                            // 1. 섹션 배경 확인
-                            if (section.style?.backgroundImage) {
-                                let bg = section.style.backgroundImage;
-                                if (bg && !bg.startsWith("http")) {
-                                    bg = await ctx.storage.getUrl(bg as any);
-                                }
-                                if (bg) {
-                                    previewUrl = bg;
-                                    break;
-                                }
+
+                        // 1. 첫 번째 섹션(히어로 섹션)에서 이미지 찾기 시도
+                        const firstSection = sections[0];
+                        if (firstSection) {
+                            // 이미지 위젯 우선
+                            const firstIdxImg = firstSection.children?.find((b: any) => b.type === 'image' && b.content?.url);
+                            if (firstIdxImg) {
+                                let img = firstIdxImg.content.url;
+                                if (img && !img.startsWith("http")) img = await ctx.storage.getUrl(img as any);
+                                if (img) previewUrl = img;
                             }
-                            // 2. 섹션 내 첫 번째 이미지 위젯 확인
-                            if (section.children) {
-                                const firstImage = section.children.find((b: any) => b.type === 'image' && b.content?.url);
-                                if (firstImage) {
-                                    let img = firstImage.content.url;
-                                    if (img && !img.startsWith("http")) {
-                                        img = await ctx.storage.getUrl(img as any);
-                                    }
+                            // 배경 이미지 차선
+                            if (!previewUrl && firstSection.style?.backgroundImage) {
+                                let bg = firstSection.style.backgroundImage;
+                                if (bg && !bg.startsWith("http")) bg = await ctx.storage.getUrl(bg as any);
+                                if (bg) previewUrl = bg;
+                            }
+                        }
+
+                        // 2. 첫 번째 섹션에서 못 찾은 경우 전체 섹션 검색 (기존 로직 유지)
+                        if (!previewUrl) {
+                            for (const section of sections) {
+                                if (section.style?.backgroundImage) {
+                                    let bg = section.style.backgroundImage;
+                                    if (bg && !bg.startsWith("http")) bg = await ctx.storage.getUrl(bg as any);
+                                    if (bg) { previewUrl = bg; break; }
+                                }
+                                if (section.children) {
+                                    const img = section.children.find((b: any) => b.type === 'image' && b.content?.url);
                                     if (img) {
-                                        previewUrl = img;
-                                        break;
+                                        let url = img.content.url;
+                                        if (url && !url.startsWith("http")) url = await ctx.storage.getUrl(url as any);
+                                        if (url) { previewUrl = url; break; }
                                     }
                                 }
                             }
