@@ -132,6 +132,7 @@ export default defineSchema({
         aligoApiKey: v.optional(v.string()),
         aligoUserId: v.optional(v.string()),
         aligoSenderNumber: v.optional(v.string()),
+        discordWebhookUrl: v.optional(v.string()),
         updatedAt: v.optional(v.number()),
     }),
 

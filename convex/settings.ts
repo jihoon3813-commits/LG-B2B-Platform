@@ -17,6 +17,7 @@ export const updateSettings = mutation({
         aligoApiKey: v.optional(v.string()),
         aligoUserId: v.optional(v.string()),
         aligoSenderNumber: v.optional(v.string()),
+        discordWebhookUrl: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         const existing = await ctx.db.query("system_settings").first();

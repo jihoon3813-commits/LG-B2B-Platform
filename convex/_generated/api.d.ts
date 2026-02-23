@@ -17,6 +17,7 @@ import type * as crawler from "../crawler.js";
 import type * as customerGroups from "../customerGroups.js";
 import type * as customers from "../customers.js";
 import type * as dashboard from "../dashboard.js";
+import type * as discord from "../discord.js";
 import type * as products from "../products.js";
 import type * as settings from "../settings.js";
 import type * as users from "../users.js";
@@ -37,6 +38,7 @@ declare const fullApi: ApiFromModules<{
   customerGroups: typeof customerGroups;
   customers: typeof customers;
   dashboard: typeof dashboard;
+  discord: typeof discord;
   products: typeof products;
   settings: typeof settings;
   users: typeof users;
