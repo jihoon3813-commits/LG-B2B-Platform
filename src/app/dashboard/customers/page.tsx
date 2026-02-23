@@ -296,19 +296,24 @@ export default function CustomersPage() {
 
         setIsSendingSms(true);
         try {
-            await sendSmsAction({
+            const result = await sendSmsAction({
                 customerIds: selectedIds,
                 campaignId: selectedCampaignId,
                 campaignTitle: campaign.title,
                 message: smsMessage
             });
-            alert("문자 발송 및 이력 기록이 완료되었습니다.");
-            setIsSendModalOpen(false);
-            setSelectedIds([]);
+
+            if (result.success) {
+                alert(`성공적으로 ${result.count}명에게 발송되었습니다.`);
+                setIsSendModalOpen(false);
+                setSelectedIds([]);
+            } else {
+                alert(`발송 실패: ${result.message}`);
+            }
         } catch (err) {
             console.error(err);
             const errorMessage = err instanceof Error ? err.message : String(err);
-            alert(`발송 실패: ${errorMessage}`);
+            alert(`시스템 오류: ${errorMessage}`);
         } finally {
             setIsSendingSms(false);
         }

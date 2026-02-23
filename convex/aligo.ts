@@ -1,7 +1,7 @@
 import { action } from "./_generated/server";
 import { v } from "convex/values";
 import { api } from "./_generated/api";
-import { Id, Doc } from "./_generated/dataModel";
+import { Doc } from "./_generated/dataModel";
 
 interface AligoSendResult {
     success: boolean;
@@ -11,9 +11,11 @@ interface AligoSendResult {
 
 interface SMSResponse {
     success: boolean;
-    count: number;
-    total: number;
-    failed: number;
+    message?: string;
+    count?: number;
+    total?: number;
+    failed?: number;
+    serverIp?: string;
 }
 
 /**
@@ -22,6 +24,7 @@ interface SMSResponse {
 async function getOutboundIp(): Promise<string> {
     try {
         const response = await fetch("https://api.ipify.org?format=json");
+        if (!response.ok) return "IP 조회 응답 실패";
         const data = await response.json() as { ip: string };
         return data.ip;
     } catch (e) {
@@ -42,26 +45,35 @@ export const sendSMS = action({
     },
     handler: async (ctx, args): Promise<SMSResponse> => {
         try {
-            console.log(`[SMS] 발송 시작: ${args.customerIds.length}명`);
+            console.log(`[SMS] 발송 시작 요청: ${args.customerIds.length}명`);
 
             // 1. 설정값 로드
             const settings = await ctx.runQuery(api.settings.getSettings);
             if (!settings?.aligoApiKey || !settings?.aligoUserId || !settings?.aligoSenderNumber) {
-                throw new Error("알리고 연동 설정(API Key, User ID, 발신번호)이 되어있지 않습니다.");
+                console.error("[SMS] 설정 미비");
+                return { success: false, message: "알리고 서버 연동 설정(API Key, User ID, 발신번호)이 완료되지 않았습니다." };
             }
 
             // 2. 고객사 데이터 로드
-            const customerPromises = args.customerIds.map(id => ctx.runQuery(api.customers.get, { id }));
-            const customerDocs = await Promise.all(customerPromises);
-            const validCustomers = (customerDocs.filter(c => c !== null) as Doc<"customers">[])
-                .filter(c => c.phoneNumber && c.phoneNumber.trim() !== "");
+            const validCustomers: Doc<"customers">[] = [];
+            for (const id of args.customerIds) {
+                try {
+                    const doc = await ctx.runQuery(api.customers.get, { id });
+                    if (doc && doc.phoneNumber && doc.phoneNumber.trim() !== "") {
+                        validCustomers.push(doc);
+                    }
+                } catch (e) {
+                    console.error(`[SMS] 고객 데이터 로드 실패 ID ${id}:`, e);
+                }
+            }
 
             if (validCustomers.length === 0) {
-                throw new Error("발송 가능한 연락처를 가진 고객이 없습니다.");
+                console.warn("[SMS] 발송 가능 대상 없음");
+                return { success: false, message: "발송 가능한 유효 연락처를 가진 고객이 선택되지 않았습니다." };
             }
 
             // 3. 발송 수행
-            let detectedIp = "확인 전";
+            let detectedIp: string | undefined;
 
             const results: AligoSendResult[] = await Promise.all(validCustomers.map(async (customer) => {
                 const personalizedMsg = args.message.replace(/#{고객명}/g, customer.name);
@@ -80,16 +92,24 @@ export const sendSMS = action({
                         method: "POST",
                         body: params
                     });
-                    const result = await response.json() as { result_code: string; message: string };
 
-                    if (result.result_code !== "1") {
-                        if (detectedIp === "확인 전") {
+                    const responseText = await response.text();
+                    let result: { result_code?: string | number; message?: string } | null = null;
+                    try {
+                        result = JSON.parse(responseText);
+                    } catch (e) {
+                        console.error("[Aligo] JSON 파싱 에러:", responseText, e);
+                        return { success: false, message: `알리고 응답 형식 오류: ${responseText.slice(0, 50)}` };
+                    }
+
+                    if (result?.result_code != "1") {
+                        if (!detectedIp) {
                             detectedIp = await getOutboundIp();
                         }
                         return {
                             success: false,
-                            code: result.result_code,
-                            message: result.message
+                            code: String(result?.result_code || "ERR"),
+                            message: String(result?.message || "Unknown error")
                         };
                     }
                     return { success: true };
@@ -101,37 +121,52 @@ export const sendSMS = action({
             const sents = results.filter(r => r.success);
             const errors = results.filter(r => !r.success);
 
-            console.log(`[SMS] 발송 완료: 성공 ${sents.length}, 실패 ${errors.length}`);
+            console.log(`[SMS] 전처리 완료: 성공 ${sents.length}, 실패 ${errors.length}`);
 
-            // 모든 발송이 실패했을 때 에러 처리 (IP 미등록 등)
+            // 모든 발송이 실패했을 때 에러 처리
             if (sents.length === 0 && errors.length > 0) {
+                if (!detectedIp) detectedIp = await getOutboundIp();
                 const head = errors[0];
+                let errorMsg = `${head.message} (코드: ${head.code || "ERR"})`;
+
                 if (head.code === "-101") {
-                    throw new Error(`인증오류(IP 미등록). 현재 서버 IP [ ${detectedIp} ]를 알리고 [발송 서버 IP]에 등록하세요.`);
+                    errorMsg = `알리고 인증오류(IP 미등록). 현재 서버 IP [ ${detectedIp} ]를 알리고 사이트의 [발송 서버 IP] 메뉴에 등록해 주세요.`;
                 }
-                throw new Error(`${head.message} (코드: ${head.code || "ERR"}) [서버 IP: ${detectedIp}]`);
+
+                return {
+                    success: false,
+                    message: errorMsg,
+                    serverIp: detectedIp
+                };
             }
 
-            // 4. 발송 이력 기록 (Mutation 호출)
-            try {
-                await ctx.runMutation(api.campaignHistory.send, {
-                    customerIds: validCustomers.map(c => c._id),
-                    campaignId: args.campaignId,
-                    campaignTitle: args.campaignTitle,
-                });
-            } catch (historyErr) {
-                console.error("[SMS] 이력 기록 실패:", historyErr);
+            // 4. 발송 이력 기록 (절반이라도 성공했으면 기록)
+            if (sents.length > 0) {
+                try {
+                    await ctx.runMutation(api.campaignHistory.send, {
+                        customerIds: validCustomers.map(c => c._id),
+                        campaignId: args.campaignId,
+                        campaignTitle: args.campaignTitle,
+                    });
+                } catch (historyErr) {
+                    console.error("[SMS] 이력 기록 실패 (Mutation 에러):", historyErr);
+                }
             }
 
             return {
                 success: true,
                 count: sents.length,
                 total: validCustomers.length,
-                failed: errors.length
+                failed: errors.length,
+                serverIp: detectedIp
             };
         } catch (err) {
-            console.error("[SMS] 액션 에러:", err);
-            throw new Error(err instanceof Error ? err.message : "SMS 전송 중 예외가 발생했습니다.");
+            console.error("[SMS] 전역 예외 발생:", err);
+            const errorMessage = err instanceof Error ? err.message : String(err);
+            return {
+                success: false,
+                message: `서폭 예외 발생: ${errorMessage}`
+            };
         }
     },
 });
