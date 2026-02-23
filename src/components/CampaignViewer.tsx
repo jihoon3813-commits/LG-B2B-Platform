@@ -55,6 +55,7 @@ const formatPhoneNumber = (value: string) => {
 
 function InquiryForm({ block, campaignId }: { block: any, campaignId: Id<"campaigns"> }) {
     const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
+    const [errorMessage, setErrorMessage] = useState("");
     const [formData, setFormData] = useState<Record<string, string>>({});
     const submitInquiry = useMutation(api.campaignInquiries.submit);
 
@@ -64,17 +65,18 @@ function InquiryForm({ block, campaignId }: { block: any, campaignId: Id<"campai
         try {
             await submitInquiry({
                 campaignId: campaignId,
-                name: formData['성함'] || formData['이름'] || Object.values(formData)[0] || '익명',
-                phoneNumber: formData['연락처'] || formData['휴대폰'] || formData['전화번호'] || '',
-                company: formData['회사명'] || formData['소속'],
-                email: formData['이메일'],
-                memo: formData['상담 내용'] || formData['상담내용'] || formData['문의사항'] || formData['문의 내용'],
+                name: formData['성함'] || formData['이름'] || formData['고객명'] || formData['신청자'] || Object.values(formData)[0] || '익명',
+                phoneNumber: formData['연락처'] || formData['휴대폰'] || formData['전화번호'] || formData['핸드폰'] || formData['전화'] || formData['폰번호'] || '',
+                company: formData['회사명'] || formData['소속'] || formData['업체명'],
+                email: formData['이메일'] || formData['메일'],
+                memo: formData['상담 내용'] || formData['상담내용'] || formData['문의사항'] || formData['문의 내용'] || formData['메모'],
                 formData: formData
             });
             setStatus("success");
             setFormData({});
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
+            setErrorMessage(err.message || "오류가 발생했습니다. 다시 시도해 주세요.");
             setStatus("error");
         }
     };
@@ -174,7 +176,7 @@ function InquiryForm({ block, campaignId }: { block: any, campaignId: Id<"campai
                     </>
                 )}
             </button>
-            {status === "error" && <p className="text-center text-xs text-red-500 font-bold">오류가 발생했습니다. 다시 시도해 주세요.</p>}
+            {status === "error" && <p className="text-center text-xs text-red-500 font-bold">{errorMessage}</p>}
         </form>
     );
 }
