@@ -7,6 +7,7 @@ import {
     User,
     Key,
     Save,
+    Mail,
     Loader2,
     Globe
 } from "lucide-react";
@@ -159,8 +160,8 @@ export default function SettingsPage() {
                 </div>
             </div>
 
-            {/* External API Settings (Google Search) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* External API Settings */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 <div className="bg-[var(--bg-white)] rounded-xl shadow-sm border border-[var(--border)] overflow-hidden">
                     <div className="p-6 border-b border-[var(--border)]">
                         <h2 className="text-lg font-bold flex items-center text-blue-500">
@@ -188,6 +189,49 @@ export default function SettingsPage() {
                                 value={form.googleCx}
                                 onChange={(e) => setForm({ ...form, googleCx: e.target.value })}
                             />
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-[var(--bg-white)] rounded-xl shadow-sm border border-[var(--border)] overflow-hidden">
+                    <div className="p-6 border-b border-[var(--border)]">
+                        <h2 className="text-lg font-bold flex items-center text-orange-500">
+                            <Mail className="w-5 h-5 mr-2" />
+                            Aligo SMS (문자 발송)
+                        </h2>
+                    </div>
+                    <div className="p-6 space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Aligo API Key</label>
+                            <input
+                                type="password"
+                                placeholder="API Key"
+                                className="w-full p-2 border rounded-md focus:ring-2 focus:ring-[var(--primary)]"
+                                value={form.aligoApiKey}
+                                onChange={(e) => setForm({ ...form, aligoApiKey: e.target.value })}
+                            />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium mb-1">User ID</label>
+                                <input
+                                    type="text"
+                                    placeholder="ID"
+                                    className="w-full p-2 border rounded-md focus:ring-2 focus:ring-[var(--primary)]"
+                                    value={form.aligoUserId}
+                                    onChange={(e) => setForm({ ...form, aligoUserId: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium mb-1">발신 번호</label>
+                                <input
+                                    type="text"
+                                    placeholder="010..."
+                                    className="w-full p-2 border rounded-md focus:ring-2 focus:ring-[var(--primary)]"
+                                    value={form.aligoSenderNumber}
+                                    onChange={(e) => setForm({ ...form, aligoSenderNumber: e.target.value })}
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>
