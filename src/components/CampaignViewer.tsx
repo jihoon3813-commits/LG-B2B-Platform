@@ -58,7 +58,6 @@ function InquiryForm({ block, campaignId }: { block: any, campaignId: Id<"campai
     const [errorMessage, setErrorMessage] = useState("");
     const [formData, setFormData] = useState<Record<string, string>>({});
     const submitInquiry = useMutation(api.campaignInquiries.submit);
-    const notifyDiscord = useMutation(api.discord.notifyInquiry as any);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -70,7 +69,7 @@ function InquiryForm({ block, campaignId }: { block: any, campaignId: Id<"campai
                 value: String(value)
             }));
 
-            const inquiryId = await submitInquiry({
+            await submitInquiry({
                 campaignId: campaignId,
                 name: formData['성함'] || formData['이름'] || formData['고객명'] || formData['신청자'] || Object.values(formData)[0] || '익명',
                 phoneNumber: formData['연락처'] || formData['휴대폰'] || formData['전화번호'] || formData['핸드폰'] || formData['전화'] || formData['폰번호'] || '',
@@ -79,13 +78,6 @@ function InquiryForm({ block, campaignId }: { block: any, campaignId: Id<"campai
                 memo: formData['상담 내용'] || formData['상담내용'] || formData['문의사항'] || formData['문의 내용'] || formData['메모'],
                 formData: safeFormData
             });
-
-            // Trigger Discord Notification (Fire and forget or wait)
-            try {
-                await notifyDiscord({ inquiryId });
-            } catch (discordErr) {
-                console.error("Discord notification failed:", discordErr);
-            }
 
             setStatus("success");
             setFormData({});

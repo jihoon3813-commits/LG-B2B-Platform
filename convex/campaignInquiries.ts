@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { api } from "./_generated/api";
 
 // 상담 신청 등록
 export const submit = mutation({
@@ -46,6 +47,24 @@ export const submit = mutation({
             status: "대기",
             createdAt: Date.now(),
         });
+
+        // Trigger Discord Notification asynchronously
+        try {
+            const settings = await ctx.db.query("system_settings").first();
+            if (settings && settings.discordWebhookUrl) {
+                await ctx.scheduler.runAfter(0, api.discord.notifyInquiry, {
+                    webhookUrl: settings.discordWebhookUrl,
+                    campaignTitle: campaign.title,
+                    name: args.name,
+                    phoneNumber: args.phoneNumber,
+                    company: args.company,
+                    email: args.email,
+                    memo: args.memo,
+                });
+            }
+        } catch (error) {
+            console.error("Failed to schedule discord notification:", error);
+        }
 
         return inquiryId;
     },
