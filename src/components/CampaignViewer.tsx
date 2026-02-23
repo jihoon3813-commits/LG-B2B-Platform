@@ -63,12 +63,12 @@ function InquiryForm({ block, campaignId }: { block: any, campaignId: Id<"campai
         setStatus("submitting");
         try {
             await submitInquiry({
-                campaignId,
+                campaignId: campaignId,
                 name: formData['성함'] || formData['이름'] || Object.values(formData)[0] || '익명',
                 phoneNumber: formData['연락처'] || formData['휴대폰'] || formData['전화번호'] || '',
                 company: formData['회사명'] || formData['소속'],
                 email: formData['이메일'],
-                memo: formData['상담내용'] || formData['문의사항'],
+                memo: formData['상담 내용'] || formData['상담내용'] || formData['문의사항'] || formData['문의 내용'],
                 formData: formData
             });
             setStatus("success");
@@ -487,9 +487,9 @@ export default function CampaignViewer({ campaignId, slug }: CampaignViewerProps
                                                     </LinkWrapper>
                                                 );
                                             })()}
-                                            {block.type === 'inquiry' && campaignId && (
+                                            {block.type === 'inquiry' && campaign?._id && (
                                                 <div style={{ padding: '20px' }}>
-                                                    <InquiryForm block={block} campaignId={campaignId} />
+                                                    <InquiryForm block={block} campaignId={campaign._id} />
                                                 </div>
                                             )}
                                         </div>

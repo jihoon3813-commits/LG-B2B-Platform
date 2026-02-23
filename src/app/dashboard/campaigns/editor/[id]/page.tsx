@@ -136,6 +136,7 @@ export default function CampaignEditorPage() {
     const [selectedCell, setSelectedCell] = useState<{ r: number, c: number } | null>(null);
     const [title, setTitle] = useState("");
     const [slug, setSlug] = useState("");
+    const [thumbnailUrl, setThumbnailUrl] = useState("");
     const [ogImage, setOgImage] = useState("");
     const [ogDescription, setOgDescription] = useState("");
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -275,6 +276,7 @@ export default function CampaignEditorPage() {
         if (campaign) {
             setTitle(campaign.title);
             setSlug(campaign.slug || "");
+            setThumbnailUrl(campaign.thumbnailUrl || "");
             setOgImage(campaign.ogImage || "");
             setOgDescription(campaign.ogDescription || "");
 
@@ -302,6 +304,7 @@ export default function CampaignEditorPage() {
                 title,
                 blocks: sections,
                 status: "published",
+                thumbnailUrl: thumbnailUrl || undefined,
                 slug: slug || undefined,
                 ogImage: ogImage || undefined,
                 ogDescription: ogDescription || undefined
@@ -382,6 +385,34 @@ export default function CampaignEditorPage() {
                                     />
                                 </div>
                                 <p className="text-xs text-gray-400 mt-1">영문, 숫자, 하이픈(-)만 사용 가능합니다.</p>
+                            </div>
+
+                            <div className="border-t pt-4">
+                                <h4 className="font-bold text-sm mb-4 text-gray-700 flex items-center gap-2"><div className="w-1 h-4 bg-blue-500 rounded-full"></div> 관리용 설정</h4>
+                                <div>
+                                    <label className="text-xs font-bold text-gray-500 mb-1.5 block">리스트 썸네일 이미지 (Thumbnail)</label>
+                                    <div className="flex items-start gap-4">
+                                        <div className="w-24 h-24 bg-gray-100 rounded-lg overflow-hidden border flex items-center justify-center flex-shrink-0">
+                                            {thumbnailUrl ? (
+                                                thumbnailUrl.startsWith('http') ? <img src={thumbnailUrl} alt="Thumb" className="w-full h-full object-cover" /> : <StorageImage storageId={thumbnailUrl} className="w-full h-full object-cover" />
+                                            ) : <ImageIcon className="text-gray-300 w-8 h-8" />}
+                                        </div>
+                                        <div className="flex-1">
+                                            <label className="btn btn-sm btn-outline w-full cursor-pointer mb-2">
+                                                이미지 업로드
+                                                <input type="file" className="hidden" accept="image/*" onChange={async (e) => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) {
+                                                        const id = await handleImageUpload(file);
+                                                        if (id) setThumbnailUrl(id);
+                                                    }
+                                                }} />
+                                            </label>
+                                            <p className="text-[10px] text-gray-400">캠페인 관리 목록에서 보여질 이미지입니다.</p>
+                                            {thumbnailUrl && <button onClick={() => setThumbnailUrl("")} className="text-xs text-red-500 mt-1 hover:underline">이미지 삭제</button>}
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             <div className="border-t pt-4">

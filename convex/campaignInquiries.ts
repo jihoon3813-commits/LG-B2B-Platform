@@ -13,6 +13,13 @@ export const submit = mutation({
         formData: v.optional(v.any()),
     },
     handler: async (ctx, args) => {
+        if (!args.name || args.name === '익명') {
+            // throw new Error("이름을 입력해 주세요.");
+        }
+        if (!args.phoneNumber) {
+            throw new Error("연락처를 입력해 주세요.");
+        }
+
         const campaign = await ctx.db.get(args.campaignId);
         if (!campaign) throw new Error("캠페인을 찾을 수 없습니다.");
 
@@ -28,9 +35,6 @@ export const submit = mutation({
             status: "대기",
             createdAt: Date.now(),
         });
-
-        // 상담 신청이 들어오면 고객 DB에도 자동으로 추가/업데이트 시도할 수 있음
-        // 여기서는 일단 인콰이어리 저장에 집중
 
         return inquiryId;
     },
