@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
     Plus,
     Search,
@@ -272,7 +272,7 @@ export default function CustomersPage() {
     };
 
     // Update message template when campaign is selected
-    useMemo(() => {
+    useEffect(() => {
         if (selectedCampaignId && campaigns) {
             const campaign = (campaigns as Campaign[]).find(c => c._id === selectedCampaignId);
             if (campaign) {
@@ -777,8 +777,8 @@ export default function CustomersPage() {
 
             {/* Campaign Send Modal - Inherited from previous state but consolidated */}
             {isSendModalOpen && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70] p-4 animate-fade-in">
-                    <div className="bg-white rounded-[40px] w-full max-w-lg shadow-2xl flex flex-col p-10 space-y-8">
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
+                    <div className="bg-white rounded-[40px] w-full max-w-lg shadow-2xl flex flex-col p-10 space-y-8 max-h-[90vh]">
                         <div className="flex justify-between items-center">
                             <div>
                                 <h2 className="text-2xl font-black flex items-center gap-3 text-gray-900"><Send className="w-6 h-6 text-blue-600" /> 캠페인 발송</h2>
@@ -786,30 +786,41 @@ export default function CustomersPage() {
                             </div>
                             <button onClick={() => setIsSendModalOpen(false)} className="text-gray-300 hover:text-gray-900 border p-2 rounded-2xl transition-all"><X className="w-5 h-5" /></button>
                         </div>
-                        <div className="space-y-4 flex-1 overflow-y-auto pr-2 custom-scrollbar">
-                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest pl-1">1. 캠페인 선택</h3>
-                            {!campaigns || (campaigns as Campaign[]).filter(c => c.status === 'published').length === 0 ? (
-                                <div className="text-center py-10 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-100 flex flex-col items-center gap-3">
-                                    <AlertCircle className="w-10 h-10 text-gray-200" />
-                                    <p className="text-xs text-gray-400 font-bold">발송 가능한 발행 캠페인이 없습니다.</p>
-                                </div>
-                            ) : (
-                                <div className="space-y-3">
-                                    {(campaigns as Campaign[]).filter(c => c.status === 'published').map((campaign) => (
-                                        <div key={campaign._id} onClick={() => setSelectedCampaignId(campaign._id)} className={`p-4 border-2 rounded-[24px] cursor-pointer transition-all flex items-center gap-4 ${selectedCampaignId === campaign._id ? "border-blue-600 bg-blue-50/50 shadow-lg shadow-blue-50" : "border-gray-50 hover:border-gray-100 bg-white"}`}>
-                                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${selectedCampaignId === campaign._id ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-300"}`}><Calendar className="w-6 h-6" /></div>
-                                            <div className="flex-1 min-w-0">
-                                                <div className="font-black text-gray-900 text-sm leading-tight truncate">{campaign.title}</div>
-                                                <div className="text-[10px] text-gray-400 mt-1 font-bold">Update: {new Date(campaign._creationTime).toLocaleDateString()}</div>
+
+                        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-6">
+                            <div className="space-y-4">
+                                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest pl-1">1. 캠페인 선택</h3>
+                                {!campaigns || (campaigns as Campaign[]).filter(c => c.status === 'published').length === 0 ? (
+                                    <div className="text-center py-10 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-100 flex flex-col items-center gap-3">
+                                        <AlertCircle className="w-10 h-10 text-gray-200" />
+                                        <p className="text-xs text-gray-400 font-bold">발송 가능한 발행 캠페인이 없습니다.</p>
+                                    </div>
+                                ) : (
+                                    <div className="grid gap-3">
+                                        {(campaigns as Campaign[]).filter(c => c.status === 'published').map((campaign) => (
+                                            <div
+                                                key={campaign._id}
+                                                onClick={() => setSelectedCampaignId(campaign._id)}
+                                                className={`p-4 border-2 rounded-[24px] cursor-pointer transition-all flex items-center gap-4 ${selectedCampaignId === campaign._id ? "border-blue-600 bg-blue-50/50 shadow-lg shadow-blue-50" : "border-gray-50 hover:border-gray-100 bg-white"}`}
+                                            >
+                                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${selectedCampaignId === campaign._id ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-300"}`}>
+                                                    <Calendar className="w-6 h-6" />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="font-black text-gray-900 text-sm leading-tight truncate">{campaign.title}</div>
+                                                    <div className="text-[10px] text-gray-400 mt-1 font-bold">Update: {new Date(campaign._creationTime).toLocaleDateString()}</div>
+                                                </div>
+                                                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${selectedCampaignId === campaign._id ? "border-blue-600 bg-blue-600" : "border-gray-100 bg-white"}`}>
+                                                    {selectedCampaignId === campaign._id && <Check className="w-4 h-4 text-white" />}
+                                                </div>
                                             </div>
-                                            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${selectedCampaignId === campaign._id ? "border-blue-600 bg-blue-600" : "border-gray-100 bg-white"}`}>{selectedCampaignId === campaign._id && <Check className="w-4 h-4 text-white" />}</div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
 
                             {selectedCampaignId && (
-                                <div className="space-y-3 pt-4 animate-fade-in">
+                                <div className="space-y-3 pt-2">
                                     <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest pl-1">2. 문자 내용 확인</h3>
                                     <textarea
                                         value={smsMessage}
@@ -818,12 +829,13 @@ export default function CustomersPage() {
                                         placeholder="문자 내용을 입력하세요."
                                     />
                                     <div className="flex justify-between items-center px-1">
-                                        <p className="text-[10px] text-gray-400 font-bold italic">* 단축 URL이 자동으로 포함되었습니다.</p>
+                                        <p className="text-[10px] text-gray-400 font-bold italic">* 단축 URL과 #{'{'}고객명{'}'}이 사용 가능합니다.</p>
                                         <p className={`text-[10px] font-black ${smsMessage.length > 90 ? 'text-orange-500' : 'text-gray-300'}`}>{smsMessage.length} bytes (90 bytes 이상 시 LMS 발송)</p>
                                     </div>
                                 </div>
                             )}
                         </div>
+
                         <button
                             onClick={handleSendCampaignSubmit}
                             disabled={!selectedCampaignId || !smsMessage || isSendingSms}
