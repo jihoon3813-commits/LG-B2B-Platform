@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
-import { Phone, Mail, MessageSquare, Clock, Trash2, AlertCircle, Building, Megaphone, Search, Filter } from "lucide-react";
+import { Trash2, AlertCircle, MessageSquare, Search, Filter } from "lucide-react";
 import { useState } from "react";
 import { Id } from "../../../../../convex/_generated/dataModel";
 
@@ -113,10 +113,16 @@ export default function CampaignInquiryListPage() {
                         <tbody className="divide-y divide-gray-50 text-gray-600">
                             {filteredInquiries?.map((inquiry: Inquiry, index: number) => {
                                 // Extract extra fields from formData if it's an array
+                                const SKIP_LABELS = ['이름', '연락처', '성함', '휴대폰', '전화번호', '핸드폰', '폰번호', '전화'];
+
                                 const extraInfo = Array.isArray(inquiry.formData)
-                                    ? inquiry.formData.map((f: any) => `${f.label}: ${f.value}`).join(' / ')
+                                    ? inquiry.formData
+                                        .filter((f: any) => f && f.label && !SKIP_LABELS.includes(f.label) && !String(f.value).includes('[object Object]'))
+                                        .map((f: any) => `${f.label}: ${f.value}`).join(' / ')
                                     : inquiry.formData
-                                        ? Object.entries(inquiry.formData).map(([k, v]) => `${k}: ${v}`).join(' / ')
+                                        ? Object.entries(inquiry.formData)
+                                            .filter(([k, v]) => !SKIP_LABELS.includes(k) && !String(v).includes('[object Object]'))
+                                            .map(([k, v]) => `${k}: ${v}`).join(' / ')
                                         : '';
 
                                 return (
