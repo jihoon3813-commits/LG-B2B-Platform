@@ -27,6 +27,10 @@ export default function CampaignInquiryListPage() {
     const removeInquiry = useMutation(api.campaignInquiries.remove);
     const [searchTerm, setSearchTerm] = useState("");
     const [filterStatus, setFilterStatus] = useState("all");
+    const [filterCampaign, setFilterCampaign] = useState("all");
+
+    // Get unique campaigns for the filter
+    const uniqueCampaigns = Array.from(new Set(inquiries?.map(inq => inq.campaignTitle) || []));
 
     const handleStatusUpdate = async (id: Id<"campaign_inquiries">, status: string) => {
         await updateStatus({ id, status });
@@ -46,8 +50,9 @@ export default function CampaignInquiryListPage() {
             (inq.company?.toLowerCase().includes(searchTerm.toLowerCase() ?? ""));
 
         const matchesStatus = filterStatus === "all" || inq.status === filterStatus;
+        const matchesCampaign = filterCampaign === "all" || inq.campaignTitle === filterCampaign;
 
-        return matchesSearch && matchesStatus;
+        return matchesSearch && matchesStatus && matchesCampaign;
     });
 
     const statusColors: Record<string, string> = {
@@ -84,12 +89,22 @@ export default function CampaignInquiryListPage() {
                     <Filter className="w-4 h-4 text-gray-400" />
                     <select
                         className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100"
+                        value={filterCampaign}
+                        onChange={(e) => setFilterCampaign(e.target.value)}
+                    >
+                        <option value="all">모든 캠페인</option>
+                        {uniqueCampaigns.map(title => (
+                            <option key={title} value={title}>{title}</option>
+                        ))}
+                    </select>
+                    <select
+                        className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100"
                         value={filterStatus}
                         onChange={(e) => setFilterStatus(e.target.value)}
                     >
                         <option value="all">모든 상태</option>
                         <option value="대기">대기</option>
-                        <option value="진행중">진행중</option>
+                        <option value="진행중">상담중</option>
                         <option value="완료">완료</option>
                         <option value="거절">거절</option>
                     </select>
@@ -103,6 +118,7 @@ export default function CampaignInquiryListPage() {
                             <tr>
                                 <th className="px-6 py-4 w-16 text-center">No.</th>
                                 <th className="px-6 py-4 w-40">신청날짜</th>
+                                <th className="px-6 py-4 w-48">캠페인명</th>
                                 <th className="px-6 py-4 w-32">이름</th>
                                 <th className="px-6 py-4 w-40">연락처</th>
                                 <th className="px-6 py-4">메모 / 추가정보</th>
@@ -113,7 +129,7 @@ export default function CampaignInquiryListPage() {
                         <tbody className="divide-y divide-gray-50 text-gray-600">
                             {filteredInquiries?.map((inquiry: Inquiry, index: number) => {
                                 // Extract extra fields from formData if it's an array
-                                const SKIP_LABELS = ['이름', '연락처', '성함', '휴대폰', '전화번호', '핸드폰', '폰번호', '전화'];
+                                const SKIP_LABELS = ['이름', '연락처', '성함', '휴대폰', '전화번호', '핸드폰', '폰번호', '전화', '상담 내용', '상담내용', '문의사항', '문의 내용'];
 
                                 const extraInfo = Array.isArray(inquiry.formData)
                                     ? inquiry.formData
@@ -136,11 +152,15 @@ export default function CampaignInquiryListPage() {
                                                 <span className="text-[10px] text-gray-400">{new Date(inquiry.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                             </div>
                                         </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex flex-col">
+                                                <span className="font-bold text-blue-600 truncate max-w-[180px]" title={inquiry.campaignTitle}>
+                                                    {inquiry.campaignTitle}
+                                                </span>
+                                            </div>
+                                        </td>
                                         <td className="px-6 py-4 font-bold text-gray-900 border-l-4 border-transparent hover:border-blue-500 pl-4 transition-all">
                                             {inquiry.name}
-                                            <div className="text-[10px] font-medium text-blue-500 mt-0.5 truncate max-w-[120px]" title={inquiry.campaignTitle}>
-                                                {inquiry.campaignTitle}
-                                            </div>
                                         </td>
                                         <td className="px-6 py-4 font-semibold">
                                             {inquiry.phoneNumber}
