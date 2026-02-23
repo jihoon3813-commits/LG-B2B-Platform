@@ -2,9 +2,25 @@
 
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
-import { Trash2, AlertCircle, MessageSquare, Search, Filter } from "lucide-react";
+import { Trash2, AlertCircle, MessageSquare, Search, Filter, X, Phone, User, Calendar, Megaphone, Info } from "lucide-react";
 import { useState } from "react";
 import { Id } from "../../../../../convex/_generated/dataModel";
+
+const formatPhoneNumber = (num: string) => {
+    const clean = num.replace(/[^0-9]/g, '');
+    if (clean.length === 11) {
+        return clean.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3');
+    } else if (clean.length === 10) {
+        if (clean.startsWith('02')) {
+            return clean.replace(/(\d{2})(\d{4})(\d{4})/, '$1-$2-$3');
+        } else {
+            return clean.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
+        }
+    } else if (clean.length === 9 && clean.startsWith('02')) {
+        return clean.replace(/(\d{2})(\d{3})(\d{4})/, '$1-$2-$3');
+    }
+    return num;
+};
 
 interface Inquiry {
     _id: Id<"campaign_inquiries">;
@@ -28,6 +44,7 @@ export default function CampaignInquiryListPage() {
     const [searchTerm, setSearchTerm] = useState("");
     const [filterStatus, setFilterStatus] = useState("all");
     const [filterCampaign, setFilterCampaign] = useState("all");
+    const [selectedInquiry, setSelectedInquiry] = useState<Inquiry | null>(null);
 
     // Get unique campaigns for the filter
     const uniqueCampaigns = Array.from(new Set(inquiries?.map(inq => inq.campaignTitle) || []));
@@ -142,7 +159,7 @@ export default function CampaignInquiryListPage() {
                                         : '';
 
                                 return (
-                                    <tr key={inquiry._id} className="hover:bg-gray-50/50 transition-colors">
+                                    <tr key={inquiry._id} className="hover:bg-gray-50/50 transition-colors group cursor-pointer" onClick={() => setSelectedInquiry(inquiry)}>
                                         <td className="px-6 py-4 text-center font-medium text-gray-400">
                                             {(filteredInquiries?.length || 0) - index}
                                         </td>
@@ -159,11 +176,11 @@ export default function CampaignInquiryListPage() {
                                                 </span>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 font-bold text-gray-900 border-l-4 border-transparent hover:border-blue-500 pl-4 transition-all">
+                                        <td className="px-6 py-4 font-bold text-gray-900 border-l-4 border-transparent group-hover:border-blue-500 pl-4 transition-all">
                                             {inquiry.name}
                                         </td>
-                                        <td className="px-6 py-4 font-semibold">
-                                            {inquiry.phoneNumber}
+                                        <td className="px-6 py-4 font-semibold text-gray-600">
+                                            {formatPhoneNumber(inquiry.phoneNumber)}
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="max-w-md">
@@ -180,6 +197,7 @@ export default function CampaignInquiryListPage() {
                                             <select
                                                 className={`w-full p-1.5 rounded-lg text-xs font-bold outline-none border transition-all ${statusColors[inquiry.status]}`}
                                                 value={inquiry.status}
+                                                onClick={(e) => e.stopPropagation()}
                                                 onChange={(e) => handleStatusUpdate(inquiry._id, e.target.value)}
                                             >
                                                 <option value="대기">대기</option>
@@ -190,7 +208,10 @@ export default function CampaignInquiryListPage() {
                                         </td>
                                         <td className="px-6 py-4 text-center">
                                             <button
-                                                onClick={() => handleDelete(inquiry._id)}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDelete(inquiry._id);
+                                                }}
                                                 className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
                                                 title="삭제"
                                             >
@@ -211,6 +232,116 @@ export default function CampaignInquiryListPage() {
                     </div>
                 )}
             </div>
+
+            {/* Detail Modal */}
+            {selectedInquiry && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                            <div>
+                                <h2 className="text-xl font-bold flex items-center gap-2">
+                                    <Info className="w-5 h-5 text-blue-500" />
+                                    상담 신청 상세 정보
+                                </h2>
+                                <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+                                    <Calendar className="w-3 h-3" />
+                                    {new Date(selectedInquiry.createdAt).toLocaleString()} 접수
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setSelectedInquiry(null)}
+                                className="p-2 bg-white rounded-xl shadow-sm border border-gray-100 text-gray-400 hover:text-gray-600 transition-all"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="p-8 space-y-8 max-h-[70vh] overflow-y-auto">
+                            <div className="grid grid-cols-2 gap-6">
+                                <div className="space-y-1">
+                                    <div className="text-[10px] font-black text-gray-300 uppercase tracking-widest flex items-center gap-1">
+                                        <User className="w-3 h-3" /> Customer Name
+                                    </div>
+                                    <div className="text-lg font-bold text-gray-800">{selectedInquiry.name}</div>
+                                </div>
+                                <div className="space-y-1">
+                                    <div className="text-[10px] font-black text-gray-300 uppercase tracking-widest flex items-center gap-1">
+                                        <Phone className="w-3 h-3" /> Phone Number
+                                    </div>
+                                    <div className="text-lg font-bold text-gray-800">{formatPhoneNumber(selectedInquiry.phoneNumber)}</div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-1 p-5 bg-blue-50/50 rounded-2xl border border-blue-100/50">
+                                <div className="text-[10px] font-black text-blue-300 uppercase tracking-widest flex items-center gap-1">
+                                    <Megaphone className="w-3 h-3" /> Campaign Source
+                                </div>
+                                <div className="text-md font-bold text-blue-700">{selectedInquiry.campaignTitle}</div>
+                            </div>
+
+                            {selectedInquiry.memo && (
+                                <div className="space-y-2">
+                                    <div className="text-[10px] font-black text-gray-300 uppercase tracking-widest flex items-center gap-1">
+                                        <MessageSquare className="w-3 h-3" /> Inquiry Memo
+                                    </div>
+                                    <div className="p-5 bg-gray-50 rounded-2xl text-sm text-gray-700 leading-relaxed whitespace-pre-wrap border border-gray-100">
+                                        {selectedInquiry.memo}
+                                    </div>
+                                </div>
+                            )}
+
+                            {(Array.isArray(selectedInquiry.formData) ? selectedInquiry.formData.length > 0 : (selectedInquiry.formData && Object.keys(selectedInquiry.formData).length > 0)) && (
+                                <div className="space-y-3">
+                                    <div className="text-[10px] font-black text-gray-300 uppercase tracking-widest">Additional Information</div>
+                                    <div className="grid grid-cols-1 gap-2">
+                                        {Array.isArray(selectedInquiry.formData) ? (
+                                            selectedInquiry.formData
+                                                .filter((f: any) => f && f.label && !['이름', '연락처', '성함', '휴대폰', '상담 내용', '상담내용'].includes(f.label))
+                                                .map((f: any, idx: number) => (
+                                                    <div key={idx} className="flex items-center justify-between p-4 bg-gray-50/50 rounded-xl border border-gray-100/50">
+                                                        <span className="text-xs font-bold text-gray-400">{f.label}</span>
+                                                        <span className="text-sm font-bold text-gray-800">{f.value}</span>
+                                                    </div>
+                                                ))
+                                        ) : (
+                                            Object.entries(selectedInquiry.formData)
+                                                .filter(([k]) => !['이름', '연락처', '성함', '휴대폰', '상담 내용', '상담내용'].includes(k))
+                                                .map(([k, v]) => (
+                                                    <div key={k} className="flex items-center justify-between p-4 bg-gray-50/50 rounded-xl border border-gray-100/50">
+                                                        <span className="text-xs font-bold text-gray-400">{k}</span>
+                                                        <span className="text-sm font-bold text-gray-800">{String(v)}</span>
+                                                    </div>
+                                                ))
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="p-6 bg-gray-50 border-t border-gray-100 flex gap-3">
+                            <select
+                                className={`flex-1 p-3 rounded-xl text-sm font-bold outline-none border shadow-sm transition-all ${statusColors[selectedInquiry.status]}`}
+                                value={selectedInquiry.status}
+                                onChange={(e) => {
+                                    handleStatusUpdate(selectedInquiry._id, e.target.value);
+                                    setSelectedInquiry({ ...selectedInquiry, status: e.target.value });
+                                }}
+                            >
+                                <option value="대기">신청 대기</option>
+                                <option value="진행중">상담 진행중</option>
+                                <option value="완료">상담 완료</option>
+                                <option value="거절">신청 거절</option>
+                            </select>
+                            <button
+                                onClick={() => setSelectedInquiry(null)}
+                                className="px-8 bg-gray-900 text-white rounded-xl text-sm font-bold hover:bg-black transition-all shadow-lg shadow-gray-200"
+                            >
+                                확인
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
