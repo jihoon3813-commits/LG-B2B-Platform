@@ -13,6 +13,7 @@ interface Campaign {
     title: string;
     status: string;
     thumbnailUrl?: string;
+    ogImage?: string;
     viewCount?: number;
 }
 
@@ -62,8 +63,8 @@ export default function CampaignListPage() {
                     >
                         {/* Preview Area */}
                         <div className="aspect-[9/16] bg-gray-50 flex items-center justify-center relative overflow-hidden border-b border-gray-50">
-                            {campaign.thumbnailUrl ? (
-                                <img src={campaign.thumbnailUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                            {(campaign.thumbnailUrl || campaign.ogImage) ? (
+                                <img src={campaign.thumbnailUrl || campaign.ogImage} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                             ) : (
                                 <div className="text-gray-300 flex flex-col items-center">
                                     <Smartphone className="w-12 h-12 mb-3 opacity-20" />

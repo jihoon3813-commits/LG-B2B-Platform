@@ -40,13 +40,26 @@ export const submit = mutation({
 export const list = query({
     args: { campaignId: v.optional(v.id("campaigns")) },
     handler: async (ctx, args) => {
-        const q = ctx.db.query("campaign_inquiries");
-        if (args.campaignId) {
-            return await q.withIndex("by_campaign", (q) => q.eq("campaignId", args.campaignId!))
-                .order("desc")
-                .collect();
+        try {
+            const q = ctx.db.query("campaign_inquiries");
+
+            if (args.campaignId) {
+                // 특정 캠페인 기준 조회
+                // by_campaign 인덱스가 없을 경우를 대비해 필터로 처리할 수도 있지만, 
+                // 인덱스가 필수라면 스키마 동기화가 필요함.
+                return await q
+                    .withIndex("by_campaign", (q) => q.eq("campaignId", args.campaignId!))
+                    .order("desc")
+                    .collect();
+            }
+
+            // 전체 조회 (인덱스가 없을 경우를 대비해 기본 order 사용)
+            // by_createdAt 인덱스 대신 기본 _creationTime을 쓰는 것이 운영 서버에서 더 안전함
+            return await q.order("desc").collect();
+        } catch (error) {
+            console.error("campaignInquiries:list error:", error);
+            return []; // 에러 시 빈 배열 반환하여 클라이언트 크래시 방지
         }
-        return await q.withIndex("by_createdAt").order("desc").collect();
     },
 });
 

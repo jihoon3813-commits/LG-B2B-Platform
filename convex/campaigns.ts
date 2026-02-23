@@ -83,7 +83,65 @@ export const remove = mutation({
 export const list = query({
     args: {},
     handler: async (ctx) => {
-        return await ctx.db.query("campaigns").order("desc").collect();
+        const campaigns = await ctx.db.query("campaigns").order("desc").collect();
+        return await Promise.all(
+            campaigns.map(async (c) => {
+                let thumbnailUrl = c.thumbnailUrl;
+                let ogImage = c.ogImage;
+
+                // Storage ID인 경우 URL로 변환
+                if (thumbnailUrl && !thumbnailUrl.startsWith("http")) {
+                    thumbnailUrl = (await ctx.storage.getUrl(thumbnailUrl as any)) || undefined;
+                }
+                if (ogImage && !ogImage.startsWith("http")) {
+                    ogImage = (await ctx.storage.getUrl(ogImage as any)) || undefined;
+                }
+
+                // 둘 다 없는 경우, 카드 목록에서 보여줄 프리뷰용 이미지 추출 (첫 번째 이미지 위젯 혹은 섹션 배경)
+                let previewUrl = thumbnailUrl || ogImage;
+
+                if (!previewUrl && c.blocks) {
+                    try {
+                        const sections = c.blocks as any[];
+                        for (const section of sections) {
+                            // 1. 섹션 배경 확인
+                            if (section.style?.backgroundImage) {
+                                let bg = section.style.backgroundImage;
+                                if (bg && !bg.startsWith("http")) {
+                                    bg = await ctx.storage.getUrl(bg as any);
+                                }
+                                if (bg) {
+                                    previewUrl = bg;
+                                    break;
+                                }
+                            }
+                            // 2. 섹션 내 첫 번째 이미지 위젯 확인
+                            if (section.children) {
+                                const firstImage = section.children.find((b: any) => b.type === 'image' && b.content?.url);
+                                if (firstImage) {
+                                    let img = firstImage.content.url;
+                                    if (img && !img.startsWith("http")) {
+                                        img = await ctx.storage.getUrl(img as any);
+                                    }
+                                    if (img) {
+                                        previewUrl = img;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.error("Error extracting preview image:", e);
+                    }
+                }
+
+                return {
+                    ...c,
+                    thumbnailUrl: previewUrl, // UI에서는 thumbnailUrl을 주로 사용하므로 여기에 할당
+                    ogImage,
+                };
+            })
+        );
     },
 });
 
