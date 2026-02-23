@@ -1,6 +1,13 @@
 import { action } from "./_generated/server";
 import { v } from "convex/values";
 import { api } from "./_generated/api";
+import { Id } from "./_generated/dataModel";
+
+interface AligoSendResult {
+    success: boolean;
+    code?: string;
+    message?: string;
+}
 
 export const sendSMS = action({
     args: {
@@ -24,16 +31,27 @@ export const sendSMS = action({
         // 3. Send messages individually for personalization
         let sampleServerIp = "알 수 없음";
 
-        const sendResults = await Promise.all(customers.map(async (customer) => {
+        // Separate the logic to get current IP
+        const getOutboundIp = async () => {
+            try {
+                const ipRes = await fetch("https://api.ipify.org?format=json");
+                const ipData = await ipRes.json();
+                return ipData.ip as string;
+            } catch {
+                return "확인 불가";
+            }
+        };
+
+        const sendResults: AligoSendResult[] = await Promise.all(customers.map(async (customer) => {
             if (!customer || !customer.phoneNumber) return { success: false, message: "연락처 없음" };
 
             const personalizedMessage = args.message.replace(/#{고객명}/g, customer.name);
             const receiver = customer.phoneNumber.replace(/[^0-9]/g, "");
 
             const params = new URLSearchParams();
-            params.append("key", settings.aligoApiKey);
-            params.append("user_id", settings.aligoUserId);
-            params.append("sender", settings.aligoSenderNumber);
+            params.append("key", settings.aligoApiKey!);
+            params.append("user_id", settings.aligoUserId!);
+            params.append("sender", settings.aligoSenderNumber!);
             params.append("receiver", receiver);
             params.append("msg", personalizedMessage);
             params.append("title", args.campaignTitle);
@@ -46,18 +64,13 @@ export const sendSMS = action({
                 const result = await response.json();
 
                 if (result.result_code != "1") {
-                    // Fetch IP for debugging on failure
-                    try {
-                        const ipRes = await fetch("https://api.ipify.org?format=json");
-                        const ipData = await ipRes.json();
-                        sampleServerIp = ipData.ip;
-                    } catch { /* ignore */ }
-
-                    return { success: false, code: String(result.result_code), message: result.message };
+                    sampleServerIp = await getOutboundIp();
+                    return { success: false, code: String(result.result_code), message: String(result.message) };
                 }
                 return { success: true };
-            } catch (err: any) {
-                return { success: false, message: err.message };
+            } catch (err: unknown) {
+                const errorMessage = err instanceof Error ? err.message : String(err);
+                return { success: false, message: errorMessage };
             }
         }));
 

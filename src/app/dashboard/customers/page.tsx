@@ -135,10 +135,16 @@ export default function CustomersPage() {
     const [smsMessage, setSmsMessage] = useState("");
     const [isSendingSms, setIsSendingSms] = useState(false);
 
+    interface HistoryEntry {
+        _id: Id<"campaignHistory">;
+        campaignTitle: string;
+        sentAt: number;
+    }
+
     // Fetch History for selected customer
     const customerHistory = useQuery(api.campaignHistory.getByCustomer,
         selectedCustomer ? { customerId: selectedCustomer._id } : "skip"
-    ) as any[];
+    ) as HistoryEntry[] | undefined;
 
     // Searching logic (matching against what's returned from the list query)
     const filteredCustomers = useMemo(() => {
@@ -299,9 +305,10 @@ export default function CustomersPage() {
             alert("문자 발송 및 이력 기록이 완료되었습니다.");
             setIsSendModalOpen(false);
             setSelectedIds([]);
-        } catch (err: any) {
+        } catch (err) {
             console.error(err);
-            alert(`발송 실패: ${err.message}`);
+            const errorMessage = err instanceof Error ? err.message : String(err);
+            alert(`발송 실패: ${errorMessage}`);
         } finally {
             setIsSendingSms(false);
         }
@@ -324,7 +331,27 @@ export default function CustomersPage() {
             try {
                 const bstr = evt.target?.result;
                 const wb = XLSX.read(bstr, { type: "binary" });
-                const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]) as Record<string, any>[];
+
+                interface ExcelRow {
+                    name?: string;
+                    '이름'?: string;
+                    company?: string;
+                    '소속'?: string;
+                    '회사명'?: string;
+                    email?: string;
+                    '이메일'?: string;
+                    phone?: string;
+                    '연락처'?: string;
+                    '전화번호'?: string;
+                    status?: string;
+                    '진행상태'?: string;
+                    notes?: string;
+                    '비고'?: string;
+                    '메모'?: string;
+                    group?: string;
+                    '그룹'?: string;
+                }
+                const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]) as ExcelRow[];
                 for (const row of rows) {
                     const name = row.name || row['이름'] || "이름없음";
                     const company = row.company || row['소속'] || row['회사명'];
@@ -688,7 +715,7 @@ export default function CustomersPage() {
                                             {!customerHistory || customerHistory.length === 0 ? (
                                                 <div className="p-8 border-2 border-dashed border-gray-100 rounded-3xl text-center"><p className="text-[10px] text-gray-300 font-bold italic">발송 이력이 없습니다.</p></div>
                                             ) : (
-                                                customerHistory.map((h: any) => (
+                                                customerHistory.map((h) => (
                                                     <div key={h._id} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden group">
                                                         <div className="absolute left-0 top-0 w-1 h-full bg-blue-500 opacity-20" />
                                                         <div className="text-xs font-black text-gray-900 leading-tight mb-2">{h.campaignTitle}</div>
