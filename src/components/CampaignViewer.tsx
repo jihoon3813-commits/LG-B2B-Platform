@@ -63,6 +63,12 @@ function InquiryForm({ block, campaignId }: { block: any, campaignId: Id<"campai
         e.preventDefault();
         setStatus("submitting");
         try {
+            // Convert formData object to array of { label, value } to avoid non-ASCII key errors in Convex arguments
+            const safeFormData = Object.entries(formData).map(([label, value]) => ({
+                label,
+                value: String(value)
+            }));
+
             await submitInquiry({
                 campaignId: campaignId,
                 name: formData['성함'] || formData['이름'] || formData['고객명'] || formData['신청자'] || Object.values(formData)[0] || '익명',
@@ -70,7 +76,7 @@ function InquiryForm({ block, campaignId }: { block: any, campaignId: Id<"campai
                 company: formData['회사명'] || formData['소속'] || formData['업체명'],
                 email: formData['이메일'] || formData['메일'],
                 memo: formData['상담 내용'] || formData['상담내용'] || formData['문의사항'] || formData['문의 내용'] || formData['메모'],
-                formData: formData
+                formData: safeFormData
             });
             setStatus("success");
             setFormData({});
