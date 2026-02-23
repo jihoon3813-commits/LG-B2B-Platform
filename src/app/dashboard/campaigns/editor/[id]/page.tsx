@@ -4,7 +4,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../../../convex/_generated/api";
 import { useState, useEffect, useCallback } from "react";
 import {
-    Type, Image as ImageIcon, Video, MoveVertical, Save, ExternalLink, ChevronLeft, MousePointer2, Pencil, Bold, Link as LinkIcon, AlignLeft, AlignCenter, AlignRight, Layout, ImagePlus, Table as TableIcon, CreditCard, Check, Circle, Square, Settings, Smile, BarChart3, ListOrdered, Activity, Award, Bell, Calendar, CheckCircle2, Clock, Cloud, Code, Database, FileText, Gift, Globe, Heart, HelpCircle, Info, Key, Laptop, Layers, LifeBuoy, Lightbulb, Lock, Mail, MapPin, MessageSquare, Monitor, Package, Phone, PieChart, Play, Shield, ShoppingCart, Smartphone, Star, Sun, Target, Trash2, User, Users, Zap
+    Type, Image as ImageIcon, Video, MoveVertical, Save, ExternalLink, ChevronLeft, MousePointer2, Pencil, Bold, Link as LinkIcon, AlignLeft, AlignCenter, AlignRight, Layout, ImagePlus, Table as TableIcon, CreditCard, Check, Circle, Square, Settings, Smile, BarChart3, ListOrdered, Activity, Award, Bell, Calendar, CheckCircle2, Clock, Cloud, Code, Database, FileText, Gift, Globe, Heart, HelpCircle, Info, Key, Laptop, Layers, LifeBuoy, Lightbulb, Lock, Mail, MapPin, MessageSquare, Monitor, Package, Phone, PieChart, Play, Shield, ShoppingCart, Smartphone, Star, Sun, Target, Trash2, User, Users, Zap, Copy
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { Id } from "../../../../../../convex/_generated/dataModel";
@@ -141,6 +141,7 @@ export default function CampaignEditorPage() {
     const [ogDescription, setOgDescription] = useState("");
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [isCopied, setIsCopied] = useState(false);
 
     // Define Handlers first to avoid hoisting issues
     const addSection = useCallback(() => {
@@ -318,6 +319,15 @@ export default function CampaignEditorPage() {
         }
     };
 
+    const handleCopy = () => {
+        const baseUrl = window.location.origin;
+        const url = slug ? `${baseUrl}/c/${slug}` : `${baseUrl}/campaign/${campaignId}`;
+        navigator.clipboard.writeText(url).then(() => {
+            setIsCopied(true);
+            setTimeout(() => setIsCopied(false), 2000);
+        });
+    };
+
     const handleImageUpload = async (file: File) => {
         try {
             const postUrl = await generateUploadUrl();
@@ -357,6 +367,10 @@ export default function CampaignEditorPage() {
                     <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="text-xl font-bold bg-transparent border-none focus:ring-0 outline-none placeholder-gray-300" />
                 </div>
                 <div className="flex gap-2">
+                    <button onClick={handleCopy} className={`btn btn-ghost text-sm transition-colors ${isCopied ? 'text-green-500' : ''}`}>
+                        {isCopied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
+                        {isCopied ? "복사됨" : "URL 복사"}
+                    </button>
                     <button onClick={() => setIsSettingsOpen(true)} className="btn btn-ghost text-sm"><Settings className="w-4 h-4 mr-2" /> 설정</button>
                     <a href={slug ? `/c/${slug}` : `/campaign/${campaignId}`} target="_blank" className="btn btn-secondary text-sm"><ExternalLink className="w-4 h-4 mr-2" /> 미리보기</a>
                     <button onClick={handleSave} className="btn btn-primary text-sm" disabled={isSaving}><Save className="w-4 h-4 mr-2" /> {isSaving ? "저장 중..." : "저장하기"}</button>
