@@ -179,3 +179,15 @@ export const get = query({
         return await ctx.db.get(args.id);
     },
 });
+
+export const getByIds = query({
+    args: { ids: v.array(v.id("customers")) },
+    handler: async (ctx, args) => {
+        const results = [];
+        for (const id of args.ids) {
+            const doc = await ctx.db.get(id);
+            if (doc) results.push(doc);
+        }
+        return results;
+    },
+});
