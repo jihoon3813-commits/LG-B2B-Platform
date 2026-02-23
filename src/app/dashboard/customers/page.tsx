@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { useState, useMemo } from "react";
 import {
@@ -59,6 +59,7 @@ interface Campaign {
     title: string;
     status: string;
     thumbnailUrl?: string;
+    slug?: string;
 }
 
 interface CustomerGroup {
@@ -99,7 +100,7 @@ export default function CustomersPage() {
     const createCustomer = useMutation(api.customers.create);
     const updateCustomer = useMutation(api.customers.update);
     const deleteCustomer = useMutation(api.customers.remove);
-    const sendCampaign = useMutation(api.campaignHistory.send);
+    const sendSmsAction = useAction(api.aligo.sendSMS);
     const bulkMoveToGroup = useMutation(api.customers.bulkMoveToGroup);
 
     const createGroup = useMutation(api.customerGroups.create);
@@ -131,6 +132,8 @@ export default function CustomersPage() {
 
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [selectedCampaignId, setSelectedCampaignId] = useState<Id<"campaigns"> | null>(null);
+    const [smsMessage, setSmsMessage] = useState("");
+    const [isSendingSms, setIsSendingSms] = useState(false);
 
     // Fetch History for selected customer
     const customerHistory = useQuery(api.campaignHistory.getByCustomer,
@@ -262,21 +265,45 @@ export default function CustomersPage() {
         }
     };
 
+    const openSendModal = () => {
+        setSelectedIds(selectedIds);
+        setIsSendModalOpen(true);
+        setSmsMessage(""); // Reset message
+    };
+
+    // Update message template when campaign is selected
+    useMemo(() => {
+        if (selectedCampaignId && campaigns) {
+            const campaign = (campaigns as Campaign[]).find(c => c._id === selectedCampaignId);
+            if (campaign) {
+                const baseUrl = window.location.origin;
+                const url = campaign.slug ? `${baseUrl}/c/${campaign.slug}` : `${baseUrl}/campaign/${campaign._id}`;
+                setSmsMessage(`[${campaign.title}] 안녕하세요 #{고객명}님!\n아래 링크를 통해 상세 내용을 확인해 보세요!\n\n${url}`);
+            }
+        }
+    }, [selectedCampaignId, campaigns]);
+
     const handleSendCampaignSubmit = async () => {
-        if (!selectedCampaignId) return;
+        if (!selectedCampaignId || !smsMessage) return;
         const campaign = (campaigns as Campaign[])?.find(c => c._id === selectedCampaignId);
         if (!campaign) return;
+
+        setIsSendingSms(true);
         try {
-            await sendCampaign({
+            await sendSmsAction({
                 customerIds: selectedIds,
                 campaignId: selectedCampaignId,
-                campaignTitle: campaign.title
+                campaignTitle: campaign.title,
+                message: smsMessage
             });
-            alert("발송되었습니다.");
+            alert("문자 발송 및 이력 기록이 완료되었습니다.");
             setIsSendModalOpen(false);
             setSelectedIds([]);
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
+            alert(`발송 실패: ${err.message}`);
+        } finally {
+            setIsSendingSms(false);
         }
     };
 
@@ -412,7 +439,7 @@ export default function CustomersPage() {
                         <span className="text-sm font-medium"><span className="text-blue-400 font-bold">{selectedIds.length}</span>명 선택됨</span>
                         <div className="w-[1px] h-4 bg-gray-700"></div>
                         <div className="flex gap-2">
-                            <button onClick={() => setIsSendModalOpen(true)} className="flex items-center gap-2 text-sm bg-blue-600 hover:bg-blue-500 px-4 py-1.5 rounded-lg transition-all font-bold">
+                            <button onClick={openSendModal} className="flex items-center gap-2 text-sm bg-blue-600 hover:bg-blue-500 px-4 py-1.5 rounded-lg transition-all font-bold">
                                 <Send className="w-4 h-4" /> 캠페인 발송
                             </button>
                             <button onClick={() => setIsMoveGroupModalOpen(true)} className="flex items-center gap-2 text-sm bg-gray-700 hover:bg-gray-600 px-4 py-1.5 rounded-lg transition-all font-bold">
@@ -759,26 +786,55 @@ export default function CustomersPage() {
                             </div>
                             <button onClick={() => setIsSendModalOpen(false)} className="text-gray-300 hover:text-gray-900 border p-2 rounded-2xl transition-all"><X className="w-5 h-5" /></button>
                         </div>
-                        <div className="space-y-4 flex-1 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                        <div className="space-y-4 flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest pl-1">1. 캠페인 선택</h3>
                             {!campaigns || (campaigns as Campaign[]).filter(c => c.status === 'published').length === 0 ? (
-                                <div className="text-center py-20 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-100 flex flex-col items-center gap-3">
+                                <div className="text-center py-10 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-100 flex flex-col items-center gap-3">
                                     <AlertCircle className="w-10 h-10 text-gray-200" />
                                     <p className="text-xs text-gray-400 font-bold">발송 가능한 발행 캠페인이 없습니다.</p>
                                 </div>
                             ) : (
-                                (campaigns as Campaign[]).filter(c => c.status === 'published').map((campaign) => (
-                                    <div key={campaign._id} onClick={() => setSelectedCampaignId(campaign._id)} className={`p-4 border-2 rounded-[24px] cursor-pointer transition-all flex items-center gap-4 ${selectedCampaignId === campaign._id ? "border-blue-600 bg-blue-50/50 shadow-lg shadow-blue-50" : "border-gray-50 hover:border-gray-100 bg-white"}`}>
-                                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${selectedCampaignId === campaign._id ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-300"}`}><Calendar className="w-6 h-6" /></div>
-                                        <div className="flex-1">
-                                            <div className="font-black text-gray-900 text-sm leading-tight">{campaign.title}</div>
-                                            <div className="text-[10px] text-gray-400 mt-1 font-bold">Update: {new Date(campaign._creationTime).toLocaleDateString()}</div>
+                                <div className="space-y-3">
+                                    {(campaigns as Campaign[]).filter(c => c.status === 'published').map((campaign) => (
+                                        <div key={campaign._id} onClick={() => setSelectedCampaignId(campaign._id)} className={`p-4 border-2 rounded-[24px] cursor-pointer transition-all flex items-center gap-4 ${selectedCampaignId === campaign._id ? "border-blue-600 bg-blue-50/50 shadow-lg shadow-blue-50" : "border-gray-50 hover:border-gray-100 bg-white"}`}>
+                                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${selectedCampaignId === campaign._id ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-300"}`}><Calendar className="w-6 h-6" /></div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="font-black text-gray-900 text-sm leading-tight truncate">{campaign.title}</div>
+                                                <div className="text-[10px] text-gray-400 mt-1 font-bold">Update: {new Date(campaign._creationTime).toLocaleDateString()}</div>
+                                            </div>
+                                            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${selectedCampaignId === campaign._id ? "border-blue-600 bg-blue-600" : "border-gray-100 bg-white"}`}>{selectedCampaignId === campaign._id && <Check className="w-4 h-4 text-white" />}</div>
                                         </div>
-                                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${selectedCampaignId === campaign._id ? "border-blue-600 bg-blue-600" : "border-gray-100 bg-white"}`}>{selectedCampaignId === campaign._id && <Check className="w-4 h-4 text-white" />}</div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {selectedCampaignId && (
+                                <div className="space-y-3 pt-4 animate-fade-in">
+                                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest pl-1">2. 문자 내용 확인</h3>
+                                    <textarea
+                                        value={smsMessage}
+                                        onChange={(e) => setSmsMessage(e.target.value)}
+                                        className="w-full p-6 border-2 border-gray-100 rounded-[32px] bg-gray-50 focus:bg-white focus:border-blue-600 outline-none h-48 resize-none transition-all font-medium text-sm leading-relaxed"
+                                        placeholder="문자 내용을 입력하세요."
+                                    />
+                                    <div className="flex justify-between items-center px-1">
+                                        <p className="text-[10px] text-gray-400 font-bold italic">* 단축 URL이 자동으로 포함되었습니다.</p>
+                                        <p className={`text-[10px] font-black ${smsMessage.length > 90 ? 'text-orange-500' : 'text-gray-300'}`}>{smsMessage.length} bytes (90 bytes 이상 시 LMS 발송)</p>
                                     </div>
-                                ))
+                                </div>
                             )}
                         </div>
-                        <button onClick={handleSendCampaignSubmit} disabled={!selectedCampaignId} className="w-full py-5 bg-blue-600 text-white rounded-3xl hover:bg-blue-700 font-black shadow-xl shadow-blue-100 disabled:opacity-20 transition-all flex items-center justify-center gap-3 text-lg"><Send className="w-5 h-5" /> 캠페인 전송 시작</button>
+                        <button
+                            onClick={handleSendCampaignSubmit}
+                            disabled={!selectedCampaignId || !smsMessage || isSendingSms}
+                            className="w-full py-5 bg-blue-600 text-white rounded-3xl hover:bg-blue-700 font-black shadow-xl shadow-blue-100 disabled:opacity-20 transition-all flex items-center justify-center gap-3 text-lg"
+                        >
+                            {isSendingSms ? (
+                                <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            ) : (
+                                <><Send className="w-5 h-5" /> 캠페인 전송 시작</>
+                            )}
+                        </button>
                     </div>
                 </div>
             )}

@@ -173,3 +173,9 @@ export const bulkMoveToGroup = mutation({
         }
     },
 });
+export const get = query({
+    args: { id: v.id("customers") },
+    handler: async (ctx, args) => {
+        return await ctx.db.get(args.id);
+    },
+});

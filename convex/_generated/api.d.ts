@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as aligo from "../aligo.js";
 import type * as campaignHistory from "../campaignHistory.js";
 import type * as campaignInquiries from "../campaignInquiries.js";
 import type * as campaigns from "../campaigns.js";
@@ -27,6 +28,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  aligo: typeof aligo;
   campaignHistory: typeof campaignHistory;
   campaignInquiries: typeof campaignInquiries;
   campaigns: typeof campaigns;

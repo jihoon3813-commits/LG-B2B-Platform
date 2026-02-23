@@ -7,7 +7,7 @@ import {
     User,
     Key,
     Save,
-    Bell,
+    Mail,
     Loader2,
     Globe
 } from "lucide-react";
@@ -33,7 +33,10 @@ export default function SettingsPage() {
         name: "",
         newPassword: "",
         googleApiKey: "",
-        googleCx: ""
+        googleCx: "",
+        aligoApiKey: "",
+        aligoUserId: "",
+        aligoSenderNumber: "",
     });
 
     const [isSaving, setIsSaving] = useState(false);
@@ -50,7 +53,10 @@ export default function SettingsPage() {
             setForm(prev => ({
                 ...prev,
                 googleApiKey: systemSettings.googleApiKey || "",
-                googleCx: systemSettings.googleCx || ""
+                googleCx: systemSettings.googleCx || "",
+                aligoApiKey: systemSettings.aligoApiKey || "",
+                aligoUserId: systemSettings.aligoUserId || "",
+                aligoSenderNumber: systemSettings.aligoSenderNumber || "",
             }));
         }
     }, [systemSettings]);
@@ -70,7 +76,10 @@ export default function SettingsPage() {
             // 2. 시스템 설정 업데이트 (Google API Key 등)
             await updateSettings({
                 googleApiKey: form.googleApiKey || undefined,
-                googleCx: form.googleCx || undefined
+                googleCx: form.googleCx || undefined,
+                aligoApiKey: form.aligoApiKey || undefined,
+                aligoUserId: form.aligoUserId || undefined,
+                aligoSenderNumber: form.aligoSenderNumber || undefined
             });
 
             alert("설정이 성공적으로 저장되었습니다!");
@@ -149,36 +158,78 @@ export default function SettingsPage() {
             </div>
 
             {/* External API Settings (Google Search) */}
-            <div className="bg-[var(--bg-white)] rounded-xl shadow-sm border border-[var(--border)] overflow-hidden">
-                <div className="p-6 border-b border-[var(--border)]">
-                    <h2 className="text-lg font-bold flex items-center">
-                        <Globe className="w-5 h-5 mr-2 text-blue-500" />
-                        외부 API 연동 (크롤러 정확도 향상)
-                    </h2>
-                    <p className="text-sm text-[var(--text-sub)]">Google Custom Search API 정보를 입력하면 제품 정보 수집의 정확도가 높아집니다.</p>
-                </div>
-                <div className="p-6 space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Google API Key</label>
-                        <input
-                            type="password"
-                            placeholder="AIzaSy..."
-                            className="w-full p-2 border rounded-md focus:ring-2 focus:ring-[var(--primary)]"
-                            value={form.googleApiKey}
-                            onChange={(e) => setForm({ ...form, googleApiKey: e.target.value })}
-                        />
-                        <p className="text-xs text-gray-500 mt-1">Google Cloud Platform에서 발급받은 API 키를 입력하세요.</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="bg-[var(--bg-white)] rounded-xl shadow-sm border border-[var(--border)] overflow-hidden">
+                    <div className="p-6 border-b border-[var(--border)]">
+                        <h2 className="text-lg font-bold flex items-center text-blue-500">
+                            <Globe className="w-5 h-5 mr-2" />
+                            Google Search (크롤러)
+                        </h2>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Search Engine ID (CX)</label>
-                        <input
-                            type="text"
-                            placeholder="0123456789..."
-                            className="w-full p-2 border rounded-md focus:ring-2 focus:ring-[var(--primary)]"
-                            value={form.googleCx}
-                            onChange={(e) => setForm({ ...form, googleCx: e.target.value })}
-                        />
-                        <p className="text-xs text-gray-500 mt-1">Programmable Search Engine ID를 입력하세요.</p>
+                    <div className="p-6 space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Google API Key</label>
+                            <input
+                                type="password"
+                                placeholder="AIzaSy..."
+                                className="w-full p-2 border rounded-md focus:ring-2 focus:ring-[var(--primary)]"
+                                value={form.googleApiKey}
+                                onChange={(e) => setForm({ ...form, googleApiKey: e.target.value })}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Search Engine ID (CX)</label>
+                            <input
+                                type="text"
+                                placeholder="0123456789..."
+                                className="w-full p-2 border rounded-md focus:ring-2 focus:ring-[var(--primary)]"
+                                value={form.googleCx}
+                                onChange={(e) => setForm({ ...form, googleCx: e.target.value })}
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-[var(--bg-white)] rounded-xl shadow-sm border border-[var(--border)] overflow-hidden">
+                    <div className="p-6 border-b border-[var(--border)]">
+                        <h2 className="text-lg font-bold flex items-center text-orange-500">
+                            <Mail className="w-5 h-5 mr-2" />
+                            Aligo SMS (문자 발송)
+                        </h2>
+                    </div>
+                    <div className="p-6 space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Aligo API Key</label>
+                            <input
+                                type="password"
+                                placeholder="API Key"
+                                className="w-full p-2 border rounded-md focus:ring-2 focus:ring-[var(--primary)]"
+                                value={form.aligoApiKey}
+                                onChange={(e) => setForm({ ...form, aligoApiKey: e.target.value })}
+                            />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium mb-1">User ID</label>
+                                <input
+                                    type="text"
+                                    placeholder="ID"
+                                    className="w-full p-2 border rounded-md focus:ring-2 focus:ring-[var(--primary)]"
+                                    value={form.aligoUserId}
+                                    onChange={(e) => setForm({ ...form, aligoUserId: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium mb-1">발신 번호</label>
+                                <input
+                                    type="text"
+                                    placeholder="010..."
+                                    className="w-full p-2 border rounded-md focus:ring-2 focus:ring-[var(--primary)]"
+                                    value={form.aligoSenderNumber}
+                                    onChange={(e) => setForm({ ...form, aligoSenderNumber: e.target.value })}
+                                />
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

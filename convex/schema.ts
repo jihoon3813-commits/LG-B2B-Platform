@@ -129,6 +129,9 @@ export default defineSchema({
     system_settings: defineTable({
         googleApiKey: v.optional(v.string()),
         googleCx: v.optional(v.string()),
+        aligoApiKey: v.optional(v.string()),
+        aligoUserId: v.optional(v.string()),
+        aligoSenderNumber: v.optional(v.string()),
         updatedAt: v.optional(v.number()),
     }),
 
